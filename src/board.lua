@@ -41,9 +41,26 @@ function Board:setupBoard()
     self.grid[1][8] = Piece.new("rook", "white", 1, 8)
     self.grid[8][1] = Piece.new("rook", "black", 8, 1)
     self.grid[8][8] = Piece.new("rook", "black", 8, 8)
+
+    -- Place knights
+    self.grid[1][2] = Piece.new("knight", "white", 1, 2)
+    self.grid[1][7] = Piece.new("knight", "white", 1, 7)
+    self.grid[8][2] = Piece.new("knight", "black", 8, 2)
+    self.grid[8][7] = Piece.new("knight", "black", 8, 7)
     
-    -- Place other pieces (knights, bishops, king, queen)...
-    -- Add more setup here
+    -- Place bishops
+    self.grid[1][3] = Piece.new("bishop", "white", 1, 3)
+    self.grid[1][6] = Piece.new("bishop", "white", 1, 6)
+    self.grid[8][3] = Piece.new("bishop", "black", 8, 3)
+    self.grid[8][6] = Piece.new("bishop", "black", 8, 6)
+    
+    -- Place queens
+    self.grid[1][4] = Piece.new("queen", "white", 1, 4)
+    self.grid[8][4] = Piece.new("queen", "black", 8, 4)
+    
+    -- Place kings
+    self.grid[1][5] = Piece.new("king", "white", 1, 5)
+    self.grid[8][5] = Piece.new("king", "black", 8, 5)
 end
 
 -- Update logic (if any time-based actions are needed)

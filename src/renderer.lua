@@ -5,6 +5,10 @@ local squareSize = 64 -- Size of each board square
 local colours = { light = {0.9, 0.9, 0.9}, dark = {0.3, 0.3, 0.3} } -- Board colours
 local pieceSprites = {}
 
+function Renderer:init()
+    self:loadAssets()
+end
+
 -- Load assets
 function Renderer:loadAssets()
     -- Load white pieces

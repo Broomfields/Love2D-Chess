@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lua",
+            "request": "launch",
+            "name": "Debug with Love2D",
+            "program": "/Applications/love.app",
+            "args": ["${workspaceFolder}"]
+        }
+    ]
+}
