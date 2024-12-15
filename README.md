@@ -33,6 +33,9 @@ A simple chess game built in Lua, using the Love2D game engine. This project is 
 
 ## Roadmap
 
+- [ ] Complete rendering to work for resizing, multiple screen modes, and refreshing.
+- [ ] Change from direct adding pieces to fixed positions over to using profiles so chess notation can be used to place pieces in different start places for different scenarios/modes.
+- [ ] Fix piece asset rendering.
 - [ ] Implement basic chess rules (complete).
 - [ ] Add check and checkmate detection.
 - [ ] Highlight valid moves for selected pieces.
