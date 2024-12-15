@@ -20,6 +20,9 @@ function love.load()
     currentPlayer = "white"
     validMoves = {}
 
+    pieceMovedSound = love.audio.newSource("assets/sounds/pieceMoved.ogg", "static")
+    pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken1.ogg", "static")
+
     function love.mousepressed(x, y, button)
         print("mousepressed(".. x ..", ".. y..", ".. button ..")")
         if button == 1 then
@@ -30,11 +33,19 @@ function love.load()
         if selectedPiece then
                 print("mousepressed(selectedPiece)")
                 if isValidMove(i, j) then
+                    local targetPiece = pieces[i][j]
                     pieces[i][j] = selectedPiece
                     pieces[selectedX][selectedY] = ""
                     selectedPiece = nil
                     selectedX, selectedY = nil, nil
                     validMoves = {}
+                    if targetPiece ~= "" then
+                        pieceTakenSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+                        love.audio.play(pieceTakenSound)
+                    else
+                        pieceMovedSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+                        love.audio.play(pieceMovedSound)
+                    end
                     switchPlayer()
                 elseif selectedX == i and selectedY == j then
                     selectedPiece = nil
