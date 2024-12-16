@@ -2,6 +2,8 @@
 
 A simple chess game built in Lua, using the Love2D game engine. This project is a learning exercise to explore Lua programming, the LÖVE framework, game development concepts, and chess mechanics.
 
+![Screenshot](assets/readme/screenshot.png)
+
 ## Features
 
 - **Chessboard and Pieces**: Implements standard chess rules and movement.
@@ -57,3 +59,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - **Love2D**: For the awesome game engine.
 - **Chess Resources**: Tutorials and guides from the chess programming community.
 - **Chess Icons**: Icons created by [Cburnett](https://commons.wikimedia.org/wiki/User:Cburnett), available under the [Creative Commons Attribution-Share Alike 3.0 Unported licence (CC BY-SA 3.0)](https://creativecommons.org/licenses/by-sa/3.0/).
+- **Sound Files**: Sound effects by [Kenney](https://www.kenney.nl), available under the [Creative Commons Zero (CC0) license](http://creativecommons.org/publicdomain/zero/1.0/).
