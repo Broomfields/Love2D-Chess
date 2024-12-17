@@ -60,3 +60,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - **Chess Resources**: Tutorials and guides from the chess programming community.
 - **Chess Icons**: Icons created by [Cburnett](https://commons.wikimedia.org/wiki/User:Cburnett), available under the [Creative Commons Attribution-Share Alike 3.0 Unported licence (CC BY-SA 3.0)](https://creativecommons.org/licenses/by-sa/3.0/).
 - **Sound Files**: Sound effects by [Kenney](https://www.kenney.nl), available under the [Creative Commons Zero (CC0) license](http://creativecommons.org/publicdomain/zero/1.0/).
+- **OpenDyslexic Font**: Font created by [Abbie Gonzalez](https://opendyslexic.org/), available under the [Open Font License](https://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL).
