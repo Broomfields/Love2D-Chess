@@ -36,10 +36,10 @@ function love.load()
     function love.mousepressed(x, y, button)
         if button == 1 then
             local windowWidth, windowHeight = love.graphics.getDimensions()
-            local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
+            local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
             local boardSize = squareSize * 8
             local boardX = (windowWidth - boardSize) / 2
-            local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
+            local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
 
             local i = math.floor((y - boardY) / squareSize) + 1
             local j = math.floor((x - boardX) / squareSize) + 1
@@ -99,10 +99,10 @@ function love.load()
 
     function love.mousemoved(x, y, dx, dy)
         local windowWidth, windowHeight = love.graphics.getDimensions()
-        local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
+        local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
         local boardSize = squareSize * 8
         local boardX = (windowWidth - boardSize) / 2
-        local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
+        local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
 
         hoveredX = math.floor((y - boardY) / squareSize) + 1
         hoveredY = math.floor((x - boardX) / squareSize) + 1
@@ -152,10 +152,10 @@ end
 
 function love.draw()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
+    local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
     local boardSize = squareSize * 8
     local boardX = (windowWidth - boardSize) / 2
-    local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
+    local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
 
     -- Set background color to Poker green
     love.graphics.clear(backgroundColor)
