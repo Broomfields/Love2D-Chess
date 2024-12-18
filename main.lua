@@ -32,7 +32,8 @@ function initializeGame()
     borderSize = 40
     uiHeight = borderSize * 2
     pieceMovedSound = love.audio.newSource("assets/sounds/pieceMoved.ogg", "static")
-    pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken1.ogg", "static")
+    pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken.ogg", "static")
+    buttonClickSound = love.audio.newSource("assets/sounds/buttonClick.ogg", "static")
     regularFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Regular.otf", 14)
     boldFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Bold.otf", 14)
     gameStartTime = love.timer.getTime()
@@ -274,10 +275,13 @@ function handleMenuClick(x, y)
     local buttonWidth = 200
     local buttonHeight = 50
     local buttonX = (windowWidth - buttonWidth) / 2
-
     -- Play Game button
     local playButtonY = windowHeight / 2 - buttonHeight - 10
     if x >= buttonX and x <= buttonX + buttonWidth and y >= playButtonY and y <= playButtonY + buttonHeight then
+        -- Play Button Click Sound
+        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        love.audio.play(buttonClickSound)
+
         initializeGame()
         gameState = "playing"
     end
@@ -285,12 +289,20 @@ function handleMenuClick(x, y)
     -- Options button
     local optionsButtonY = windowHeight / 2
     if x >= buttonX and x <= buttonX + buttonWidth and y >= optionsButtonY and y <= optionsButtonY + buttonHeight then
+        -- Play Button Click Sound
+        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        love.audio.play(buttonClickSound)
+
         gameState = "options"
     end
 
     -- Exit button
     local exitButtonY = windowHeight / 2 + buttonHeight + 10
     if x >= buttonX and x <= buttonX + buttonWidth and y >= exitButtonY and y <= exitButtonY + buttonHeight then
+        -- Play Button Click Sound
+        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        love.audio.play(buttonClickSound)
+        
         love.event.quit()
     end
 end
@@ -304,6 +316,10 @@ function handleOptionsClick(x, y)
     -- Return button
     local returnButtonY = windowHeight / 2 + buttonHeight + 10
     if x >= buttonX and x <= buttonX + buttonWidth and y >= returnButtonY and y <= returnButtonY + buttonHeight then
+        -- Play Button Click Sound
+        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        love.audio.play(buttonClickSound)
+        
         gameState = "menu"
     end
 end
@@ -323,6 +339,10 @@ function handleGameClick(x, y)
     local resignButtonX = boardX + boardSize - resignButtonWidth
     local resignButtonY = boardY + boardSize + borderSize / 2 + 30
     if x >= resignButtonX and x <= resignButtonX + resignButtonWidth and y >= resignButtonY and y <= resignButtonY + 30 then
+        -- Play Button Click Sound
+        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        love.audio.play(buttonClickSound)
+
         gameState = "menu"
         return
     end
