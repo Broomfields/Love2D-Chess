@@ -4,21 +4,21 @@ local hoveredButton = nil
 function love.load()
     love.window.setTitle("Basic Chess Game")
     love.window.setMode(800, 800, {resizable = true, minwidth = 400, minheight = 400})
-    initializeGame()
+    initialiseGame()
 end
 
-function initializeGame()
+function initialiseGame()
     board = {}
     for i = 1, 8 do
         board[i] = {}
         for j = 1, 8 do
-            board[i][j] = {piece = nil, color = (i + j) % 2 == 0 and {1, 1, 1} or {0, 0, 0}}
+            board[i][j] = {piece = nil, colour = (i + j) % 2 == 0 and {1, 1, 1} or {0, 0, 0}}
         end
     end
-    whiteColor = {1, 1, 1}
-    blackColor = {0, 0, 0}
-    backgroundColor = {0, 0, 0}
-    borderColor = {0, 0, 0}
+    whiteColour = {1, 1, 1}
+    blackColour = {0, 0, 0}
+    backgroundColour = {0, 0, 0}
+    borderColour = {0, 0, 0}
     function hexToRgb(hex)
         hex = hex:gsub("#", "")
         return {tonumber("0x" .. hex:sub(1, 2)) / 255, tonumber("0x" .. hex:sub(3, 4)) / 255, tonumber("0x" .. hex:sub(5, 6)) / 255}
@@ -41,15 +41,15 @@ function initializeGame()
     latestMove = ""
     inCheck = false
 
-    -- Example of changing colors using hex codes
-    whiteColor = hexToRgb("#EBECD3")
-    blackColor = hexToRgb("#7D945D")
-    backgroundColor = hexToRgb("#B4C098")
-    borderColor = hexToRgb("#453643")
+    -- Example of changing colours using hex codes
+    whiteColour = hexToRgb("#EBECD3")
+    blackColour = hexToRgb("#7D945D")
+    backgroundColour = hexToRgb("#B4C098")
+    borderColour = hexToRgb("#453643")
 
     for i = 1, 8 do
         for j = 1, 8 do
-            board[i][j].color = (i + j) % 2 == 0 and whiteColor or blackColor
+            board[i][j].colour = (i + j) % 2 == 0 and whiteColour or blackColour
         end
     end
 
@@ -92,7 +92,7 @@ end
 
 function drawMenu()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    love.graphics.clear(backgroundColor)
+    love.graphics.clear(backgroundColour)
     love.graphics.setFont(boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Basic Chess Game", 0, windowHeight / 4, windowWidth, "center")
@@ -137,7 +137,7 @@ end
 
 function drawOptions()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    love.graphics.clear(backgroundColor)
+    love.graphics.clear(backgroundColour)
     love.graphics.setFont(boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Options", 0, windowHeight / 4, windowWidth, "center")
@@ -167,8 +167,8 @@ function drawGame()
     local boardX = (windowWidth - boardSize) / 2
     local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
 
-    -- Set background color to Poker green
-    love.graphics.clear(backgroundColor)
+    -- Set background colour to Poker green
+    love.graphics.clear(backgroundColour)
 
     -- Draw the board
     drawBoard(boardX, boardY, squareSize, boardSize)
@@ -282,7 +282,7 @@ function handleMenuClick(x, y)
         buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
         love.audio.play(buttonClickSound)
 
-        initializeGame()
+        initialiseGame()
         gameState = "playing"
     end
 
@@ -370,7 +370,7 @@ function handleGameClick(x, y)
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
                 validMoves = {}
-            elseif pieces[i][j] ~= "" and getPieceColor(pieces[i][j]) == currentPlayer then
+            elseif pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == currentPlayer then
                 selectedPiece = pieces[i][j]
                 selectedX, selectedY = i, j
                 validMoves = getValidMoves(i, j)
@@ -379,7 +379,7 @@ function handleGameClick(x, y)
                 selectedX, selectedY = nil, nil
                 validMoves = {}
             end
-        elseif pieces[i][j] ~= "" and getPieceColor(pieces[i][j]) == currentPlayer then
+        elseif pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == currentPlayer then
             selectedPiece = pieces[i][j]
             selectedX, selectedY = i, j
             validMoves = getValidMoves(i, j)
@@ -396,7 +396,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
     local cornerLength = 20
 
     -- Draw oak border around the board
-    love.graphics.setColor(borderColor)
+    love.graphics.setColor(borderColour)
     love.graphics.rectangle("fill", boardX - borderSize, boardY - borderSize, boardSize + 2 * borderSize, boardSize + 2 * borderSize)
 
     -- Draw chess notation coordinates
@@ -413,7 +413,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
 
     for i = 1, 8 do
         for j = 1, 8 do
-            love.graphics.setColor(board[i][j].color)
+            love.graphics.setColor(board[i][j].colour)
             love.graphics.rectangle("fill", boardX + (j - 1) * squareSize, boardY + (i - 1) * squareSize, squareSize, squareSize)
             if pieces[i][j] ~= "" then
                 local pieceImage = pieceImages[pieces[i][j]]
@@ -439,9 +439,26 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
         love.graphics.rectangle("line", boardX + (selectedY - 1) * squareSize + borderWidth / 2, boardY + (selectedX - 1) * squareSize + borderWidth / 2, squareSize - borderWidth, squareSize - borderWidth)
     end
 
+    if inCheck then
+        local kingX, kingY
+        for i = 1, 8 do
+            for j = 1, 8 do
+                if pieces[i][j] == currentPlayer .. "_king" then
+                    kingX, kingY = i, j
+                    break
+                end
+            end
+        end
+        if kingX and kingY then
+            love.graphics.setColor(1, 0, 0) -- Red
+            love.graphics.setLineWidth(borderWidth)
+            love.graphics.rectangle("line", boardX + (kingY - 1) * squareSize + borderWidth / 2, boardY + (kingX - 1) * squareSize + borderWidth / 2, squareSize - borderWidth, squareSize - borderWidth)
+        end
+    end
+
     for _, move in ipairs(validMoves) do
         local targetPiece = pieces[move[1]][move[2]]
-        if targetPiece ~= "" and getPieceColor(targetPiece) ~= currentPlayer then
+        if targetPiece ~= "" and getPieceColour(targetPiece) ~= currentPlayer then
             love.graphics.setColor(1, 0, 0) -- Red
         else
             love.graphics.setColor(1, 0.75, 0) -- Amber
@@ -500,13 +517,14 @@ function drawCornerLines(x, y, size, width, length)
     love.graphics.line(x + size, y + size, x + size, y + size - length) -- Bottom-right vertical
 end
 
-function getPieceColor(piece)
+function getPieceColour(piece)
     return piece:match("^white") and "white" or "black"
 end
 
 function switchPlayer()
     currentPlayer = currentPlayer == "white" and "black" or "white"
     turnStartTime = love.timer.getTime()
+    inCheck = isKingInCheck(currentPlayer)
 end
 
 function isValidMove(i, j)
@@ -522,21 +540,21 @@ end
 
 function getValidMoves(x, y)
     local piece = pieces[x][y]
-    local pieceColor = getPieceColor(piece)
+    local pieceColour = getPieceColour(piece)
     local moves = {}
 
     if piece:match("pawn") then
-        moves = getPawnMoves(x, y, pieceColor)
+        moves = getPawnMoves(x, y, pieceColour)
     elseif piece:match("rook") then
-        moves = getRookMoves(x, y, pieceColor)
+        moves = getRookMoves(x, y, pieceColour)
     elseif piece:match("knight") then
-        moves = getKnightMoves(x, y, pieceColor)
+        moves = getKnightMoves(x, y, pieceColour)
     elseif piece:match("bishop") then
-        moves = getBishopMoves(x, y, pieceColor)
+        moves = getBishopMoves(x, y, pieceColour)
     elseif piece:match("queen") then
-        moves = getQueenMoves(x, y, pieceColor)
+        moves = getQueenMoves(x, y, pieceColour)
     elseif piece:match("king") then
-        moves = getKingMoves(x, y, pieceColor)
+        moves = getKingMoves(x, y, pieceColour)
     end
 
     -- Debug print to check valid moves
@@ -548,14 +566,14 @@ function getValidMoves(x, y)
     return moves
 end
 
-function getPawnMoves(x, y, pieceColor)
+function getPawnMoves(x, y, pieceColour)
     local moves = {}
-    local direction = pieceColor == "white" and -1 or 1
-    local startRow = pieceColor == "white" and 7 or 2
+    local direction = pieceColour == "white" and -1 or 1
+    local startRow = pieceColour == "white" and 7 or 2
 
     local function addMoveIfValid(i, j)
         if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColor(pieces[i][j]) ~= pieceColor then
+            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
                 table.insert(moves, {i, j})
             end
         end
@@ -571,10 +589,10 @@ function getPawnMoves(x, y, pieceColor)
     end
 
     -- Captures
-    if y > 1 and pieces[x + direction][y - 1] ~= "" and getPieceColor(pieces[x + direction][y - 1]) ~= pieceColor then
+    if y > 1 and pieces[x + direction][y - 1] ~= "" and getPieceColour(pieces[x + direction][y - 1]) ~= pieceColour then
         addMoveIfValid(x + direction, y - 1)
     end
-    if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColor(pieces[x + direction][y + 1]) ~= pieceColor then
+    if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
         addMoveIfValid(x + direction, y + 1)
     end
 
@@ -586,12 +604,12 @@ function getPawnMoves(x, y, pieceColor)
     return moves
 end
 
-function getRookMoves(x, y, pieceColor)
+function getRookMoves(x, y, pieceColour)
     local moves = {}
 
     local function addMoveIfValid(i, j)
         if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColor(pieces[i][j]) ~= pieceColor then
+            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
                 table.insert(moves, {i, j})
             end
         end
@@ -634,12 +652,12 @@ function getRookMoves(x, y, pieceColor)
     return moves
 end
 
-function getKnightMoves(x, y, pieceColor)
+function getKnightMoves(x, y, pieceColour)
     local moves = {}
 
     local function addMoveIfValid(i, j)
         if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColor(pieces[i][j]) ~= pieceColor then
+            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
                 table.insert(moves, {i, j})
             end
         end
@@ -657,12 +675,12 @@ function getKnightMoves(x, y, pieceColor)
     return moves
 end
 
-function getBishopMoves(x, y, pieceColor)
+function getBishopMoves(x, y, pieceColour)
     local moves = {}
 
     local function addMoveIfValid(i, j)
         if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColor(pieces[i][j]) ~= pieceColor then
+            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
                 table.insert(moves, {i, j})
             end
         end
@@ -713,12 +731,12 @@ function getBishopMoves(x, y, pieceColor)
     return moves
 end
 
-function getQueenMoves(x, y, pieceColor)
+function getQueenMoves(x, y, pieceColour)
     local moves = {}
 
     -- Combine rook and bishop moves
-    local rookMoves = getRookMoves(x, y, pieceColor)
-    local bishopMoves = getBishopMoves(x, y, pieceColor)
+    local rookMoves = getRookMoves(x, y, pieceColour)
+    local bishopMoves = getBishopMoves(x, y, pieceColour)
 
     for _, move in ipairs(rookMoves) do
         table.insert(moves, move)
@@ -730,12 +748,12 @@ function getQueenMoves(x, y, pieceColor)
     return moves
 end
 
-function getKingMoves(x, y, pieceColor)
+function getKingMoves(x, y, pieceColour)
     local moves = {}
 
     local function addMoveIfValid(i, j)
         if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColor(pieces[i][j]) ~= pieceColor then
+            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
                 table.insert(moves, {i, j})
             end
         end
@@ -756,4 +774,31 @@ function getKingMoves(x, y, pieceColor)
     -- end
 
     return moves
+end
+
+function isKingInCheck(player)
+    local kingX, kingY
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] == player .. "_king" then
+                kingX, kingY = i, j
+                break
+            end
+        end
+    end
+
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) ~= player then
+                local moves = getValidMoves(i, j)
+                for _, move in ipairs(moves) do
+                    if move[1] == kingX and move[2] == kingY then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
 end
