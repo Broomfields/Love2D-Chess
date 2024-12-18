@@ -284,11 +284,11 @@ end
 function isValidMove(i, j)
     for _, move in ipairs(validMoves) do
         if move[1] == i and move[2] == j then
-            print("Valid move to (" .. i .. ", " .. j .. ")")
+            -- print("Valid move to (" .. i .. ", " .. j .. ")")
             return true
         end
     end
-    print("Invalid move to (" .. i .. ", " .. j .. ")")
+    -- print("Invalid move to (" .. i .. ", " .. j .. ")")
     return false
 end
 
@@ -312,10 +312,10 @@ function getValidMoves(x, y)
     end
 
     -- Debug print to check valid moves
-    print("Valid moves for piece at (" .. x .. ", " .. y .. "):")
-    for _, move in ipairs(moves) do
-        print("Move to (" .. move[1] .. ", " .. move[2] .. ")")
-    end
+    -- print("Valid moves for piece at (" .. x .. ", " .. y .. "):")
+    -- for _, move in ipairs(moves) do
+    --     print("Move to (" .. move[1] .. ", " .. move[2] .. ")")
+    -- end
 
     return moves
 end
