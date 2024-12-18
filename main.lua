@@ -30,7 +30,7 @@ function love.load()
     boldFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Bold.otf", 14)
     gameStartTime = love.timer.getTime()
     turnStartTime = love.timer.getTime()
-    lastMove = ""
+    latestMove = ""
     inCheck = false
 
     function love.mousepressed(x, y, button)
@@ -39,24 +39,34 @@ function love.load()
             local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
             local boardSize = squareSize * 8
             local boardX = (windowWidth - boardSize) / 2
-            local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+            local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
 
             local i = math.floor((y - boardY) / squareSize) + 1
             local j = math.floor((x - boardX) / squareSize) + 1
+
+            -- Check if the resign button is clicked
+            local resignButtonWidth = 100
+            local resignButtonX = boardX + boardSize - resignButtonWidth
+            local resignButtonY = boardY + boardSize + borderSize / 2 + 30
+            if x >= resignButtonX and x <= resignButtonX + resignButtonWidth and y >= resignButtonY and y <= resignButtonY + 30 then
+                love.event.quit()
+            end
 
             if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
                 if selectedPiece then
                     if isValidMove(i, j) then
                         local targetPiece = pieces[i][j]
                         pieces[i][j] = selectedPiece
-                        pieces[selectedX][selectedY] = ""
+                        pieces[selectedX][selectedY] = ""                        
                         selectedPiece = nil
                         selectedX, selectedY = nil, nil
                         validMoves = {}
                         if targetPiece ~= "" then
+                            latestMove = pieces[i][j] .. " takes " .. string.char(96 + j):upper() .. tostring(9 - i)
                             pieceTakenSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
                             love.audio.play(pieceTakenSound)
                         else
+                            latestMove = pieces[i][j] .. " to " .. string.char(96 + j):upper() .. tostring(9 - i)
                             pieceMovedSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
                             love.audio.play(pieceMovedSound)
                         end
@@ -92,7 +102,7 @@ function love.load()
         local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
         local boardSize = squareSize * 8
         local boardX = (windowWidth - boardSize) / 2
-        local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+        local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
 
         hoveredX = math.floor((y - boardY) / squareSize) + 1
         hoveredY = math.floor((x - boardX) / squareSize) + 1
@@ -145,7 +155,7 @@ function love.draw()
     local squareSize = (windowHeight - 2 * borderSize - 2 * uiHeight) / 8
     local boardSize = squareSize * 8
     local boardX = (windowWidth - boardSize) / 2
-    local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+    local boardY = ((windowHeight - boardSize) / 2 + uiHeight / 2) - 40
 
     -- Set background color to Poker green
     love.graphics.clear(backgroundColor)
@@ -185,10 +195,11 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
                 local pieceImage = pieceImages[pieces[i][j]]
                 local pieceWidth = pieceImage:getWidth()
                 local pieceHeight = pieceImage:getHeight()
-                local offsetX = (squareSize - pieceWidth) / 2
-                local offsetY = (squareSize - pieceHeight) / 2
+                local scale = 0.9 * squareSize / math.max(pieceWidth, pieceHeight)
+                local offsetX = (squareSize - pieceWidth * scale) / 2
+                local offsetY = (squareSize - pieceHeight * scale) / 2
                 love.graphics.setColor(1, 1, 1)
-                love.graphics.draw(pieceImage, boardX + (j - 1) * squareSize + offsetX, boardY + (i - 1) * squareSize + offsetY)
+                love.graphics.draw(pieceImage, boardX + (j - 1) * squareSize + offsetX, boardY + (i - 1) * squareSize + offsetY, 0, scale, scale)
             end
         end
     end
@@ -217,10 +228,17 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
 end
 
 function drawUI(boardX, boardY, boardSize)
+    -- Draw current player
     love.graphics.setFont(regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime), boardX, boardY - uiHeight + 10)
-    love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime), boardX + 200, boardY - uiHeight + 10)
+    love.graphics.print("Current Player: ", boardX, boardY - (uiHeight + 20))
+    love.graphics.print(currentPlayer, boardX, boardY - uiHeight + 10)
+    
+    -- Draw Latest Move
+    love.graphics.setFont(regularFont)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.print("Latest Move: ", boardX + 200, boardY - (uiHeight + 20))
+    love.graphics.print(latestMove, boardX + 200, boardY - uiHeight + 10)
     if inCheck then
         love.graphics.setFont(boldFont)
         love.graphics.setColor(1, 0, 0)
@@ -236,15 +254,11 @@ function drawUI(boardX, boardY, boardSize)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Resign", resignButtonX, resignButtonY + 7, resignButtonWidth, "center")
 
-    -- Draw last move
+    -- Draw game time and turn time
     love.graphics.setFont(regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Last Move: " .. lastMove, boardX, boardY + boardSize + borderSize / 2 + 30)
-
-    -- Draw current player
-    love.graphics.setFont(regularFont)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Current Player: " .. currentPlayer, boardX, boardY + boardSize + borderSize / 2 + 60)
+    love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime), boardX, boardY + boardSize + borderSize / 2 + 30)
+    love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime), boardX + 200, boardY + boardSize + borderSize / 2 + 30)
 end
 
 function drawCornerLines(x, y, size, width, length)
@@ -336,7 +350,7 @@ function getPawnMoves(x, y, pieceColor)
         addMoveIfValid(x + direction, y + 1)
     end
 
-    -- En passant (not fully implemented, needs additional logic to track last move)
+    -- En passant (not fully implemented, needs additional logic to track Latest Move)
     -- if enPassantCondition then
     --     addMoveIfValid(x + direction, enPassantColumn)
     -- end
