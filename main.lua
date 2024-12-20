@@ -530,11 +530,9 @@ end
 function isValidMove(i, j)
     for _, move in ipairs(validMoves) do
         if move[1] == i and move[2] == j then
-            -- print("Valid move to (" .. i .. ", " .. j .. ")")
             return true
         end
     end
-    -- print("Invalid move to (" .. i .. ", " .. j .. ")")
     return false
 end
 
@@ -557,12 +555,6 @@ function getValidMoves(x, y)
         moves = getKingMoves(x, y, pieceColour)
     end
 
-    -- Debug print to check valid moves
-    -- print("Valid moves for piece at (" .. x .. ", " .. y .. "):")
-    -- for _, move in ipairs(moves) do
-    --     print("Move to (" .. move[1] .. ", " .. move[2] .. ")")
-    -- end
-
     return moves
 end
 
@@ -580,20 +572,22 @@ function getPawnMoves(x, y, pieceColour)
     end
 
     -- Normal move
-    if pieces[x + direction][y] == "" then
+    if x + direction >= 1 and x + direction <= 8 and pieces[x + direction][y] == "" then
         addMoveIfValid(x + direction, y)
         -- Double move from start position
-        if x == startRow and pieces[x + 2 * direction][y] == "" then
+        if x == startRow and x + 2 * direction >= 1 and x + 2 * direction <= 8 and pieces[x + 2 * direction][y] == "" then
             addMoveIfValid(x + 2 * direction, y)
         end
     end
 
     -- Captures
-    if y > 1 and pieces[x + direction][y - 1] ~= "" and getPieceColour(pieces[x + direction][y - 1]) ~= pieceColour then
-        addMoveIfValid(x + direction, y - 1)
-    end
-    if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
-        addMoveIfValid(x + direction, y + 1)
+    if x + direction >= 1 and x + direction <= 8 then
+        if y > 1 and pieces[x + direction][y - 1] ~= "" and getPieceColour(pieces[x + direction][y - 1]) ~= pieceColour then
+            addMoveIfValid(x + direction, y - 1)
+        end
+        if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
+            addMoveIfValid(x + direction, y + 1)
+        end
     end
 
     -- En passant (not fully implemented, needs additional logic to track Latest Move)
