@@ -1,0 +1,11 @@
+{
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.workspace.checkThirdParty": false,
+    "lua-local.interpreter": "LuaJIT",
+    "Lua.diagnostics.globals": [
+        "love"
+    ],
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+}
