@@ -1,3 +1,11 @@
+-- Resolve the project root from this file's location so require("chess") works
+-- regardless of what directory busted is invoked from (e.g. VS Code extension).
+local specPath = debug.getinfo(1, "S").source:sub(2)  -- strip leading '@'
+local projectRoot = specPath:match("(.*[/\\])spec[/\\]")
+if projectRoot then
+    package.path = projectRoot .. "?.lua;" .. package.path
+end
+
 require("chess")
 
 -- Helpers to set up board state
