@@ -59,14 +59,14 @@ function Popup.draw()
     love.graphics.rectangle("fill", px, py + TITLE_H - CORNER_R, cfg.width, CORNER_R)
 
     -- Title text
-    love.graphics.setFont(boldFont)
+    love.graphics.setFont(Theme.boldFont)
     love.graphics.setColor(1, 1, 1)
     local titleFH = love.graphics.getFont():getHeight()
     love.graphics.printf(cfg.title, px, py + (TITLE_H - titleFH) / 2, cfg.width, "center")
 
     if cfg.type == "message" then
         -- Message text
-        love.graphics.setFont(regularFont)
+        love.graphics.setFont(Theme.regularFont)
         love.graphics.setColor(cfg.messageColour or {1, 1, 1})
         love.graphics.printf(cfg.message, px + PADDING, py + TITLE_H + PADDING, cfg.width - 2 * PADDING, "center")
 
@@ -76,7 +76,7 @@ function Popup.draw()
         local startX = px + (cfg.width - totalW) / 2
         local btnY = py + cfg.height - BUTTON_H - PADDING
 
-        love.graphics.setFont(regularFont)
+        love.graphics.setFont(Theme.regularFont)
         local btnFH = love.graphics.getFont():getHeight()
 
         for idx, btn in ipairs(cfg.buttons) do

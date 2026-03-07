@@ -1,4 +1,4 @@
-require("chess")
+local Chess  = require("chess")
 local Theme  = require("theme")
 local Popup  = require("ui")
 local Popups = require("popups")
@@ -31,8 +31,7 @@ function initialiseGame()
     pieceMovedSound = love.audio.newSource("assets/sounds/pieceMoved.ogg", "static")
     pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken.ogg", "static")
     buttonClickSound = love.audio.newSource("assets/sounds/buttonClick.ogg", "static")
-    regularFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Regular.otf", 14)
-    boldFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Bold.otf", 14)
+    Theme.load()
     gameStartTime = love.timer.getTime()
     turnStartTime = love.timer.getTime()
     latestMove = ""
@@ -80,7 +79,7 @@ end
 function drawMenu()
     local windowWidth, windowHeight = love.graphics.getDimensions()
     love.graphics.clear(Theme.background)
-    love.graphics.setFont(boldFont)
+    love.graphics.setFont(Theme.boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Basic Chess Game", 0, windowHeight / 4, windowWidth, "center")
 
@@ -88,8 +87,8 @@ function drawMenu()
     local buttonHeight = 50
     local buttonX = (windowWidth - buttonWidth) / 2
 
-    love.graphics.setFont(regularFont)
-    local btnFH = regularFont:getHeight()
+    love.graphics.setFont(Theme.regularFont)
+    local btnFH = Theme.regularFont:getHeight()
 
     -- Play Game button
     local playButtonY = windowHeight / 2 - buttonHeight - 10
@@ -128,10 +127,10 @@ end
 function drawOptions()
     local windowWidth, windowHeight = love.graphics.getDimensions()
     love.graphics.clear(Theme.background)
-    love.graphics.setFont(boldFont)
+    love.graphics.setFont(Theme.boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Options", 0, windowHeight / 4, windowWidth, "center")
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     love.graphics.printf("To Do", 0, windowHeight / 2, windowWidth, "center")
 
     local buttonWidth = 200
@@ -147,7 +146,7 @@ function drawOptions()
     end
     love.graphics.rectangle("fill", buttonX, returnButtonY, buttonWidth, buttonHeight)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Return", buttonX, returnButtonY + (buttonHeight - regularFont:getHeight()) / 2, buttonWidth, "center")
+    love.graphics.printf("Return", buttonX, returnButtonY + (buttonHeight - Theme.regularFont:getHeight()) / 2, buttonWidth, "center")
 end
 
 function drawGame()
@@ -299,7 +298,7 @@ function handleMenuClick(x, y)
         -- Play Button Click Sound
         buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
         love.audio.play(buttonClickSound)
-        
+
         love.event.quit()
     end
 end
@@ -316,7 +315,7 @@ function handleOptionsClick(x, y)
         -- Play Button Click Sound
         buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
         love.audio.play(buttonClickSound)
-        
+
         gameState = "menu"
     end
 end
@@ -352,42 +351,23 @@ function handleGameClick(x, y)
         if selectedPiece then
             if isValidMove(i, j) then
                 local fromRow, fromCol = selectedX, selectedY
-                local movedPiece = selectedPiece
-                local targetPiece = pieces[i][j]
-                pieces[i][j] = movedPiece
-                pieces[fromRow][fromCol] = ""
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
                 validMoves = {}
 
-                -- En passant capture: destination was empty; remove the skipped pawn
-                local isEnPassant = enPassantTarget and movedPiece:match("pawn") and
-                                    i == enPassantTarget[1] and j == enPassantTarget[2]
-                if isEnPassant then
-                    pieces[fromRow][j] = ""
-                    latestMove = movedPiece .. " takes " .. string.char(96 + j):upper() .. tostring(9 - i) .. " e.p."
+                local result = Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, i, j)
+                latestMove = result.notation
+                enPassantTarget = result.newEnPassantTarget
+
+                if result.captured ~= "" then
                     pieceTakenSound:setPitch(math.random(8, 32) / 16)
                     love.audio.play(pieceTakenSound)
-                elseif targetPiece ~= "" then
-                    latestMove = pieces[i][j] .. " takes " .. string.char(96 + j):upper() .. tostring(9 - i)
-                    pieceTakenSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
-                    love.audio.play(pieceTakenSound)
                 else
-                    latestMove = pieces[i][j] .. " to " .. string.char(96 + j):upper() .. tostring(9 - i)
-                    pieceMovedSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+                    pieceMovedSound:setPitch(math.random(8, 32) / 16)
                     love.audio.play(pieceMovedSound)
                 end
 
-                -- Update en passant target for the opponent's next move
-                if movedPiece:match("pawn") and math.abs(i - fromRow) == 2 then
-                    enPassantTarget = {(i + fromRow) / 2, j}
-                else
-                    enPassantTarget = nil
-                end
-
-                local promoting = (movedPiece == "white_pawn" and i == 1)
-                               or (movedPiece == "black_pawn" and i == 8)
-                if promoting then
+                if result.isPromotion then
                     local promRow, promCol = i, j
                     local cfg = Popups.pawnPromotion(currentPlayer, pieceImages)
                     cfg.onPick = function(value)
@@ -404,19 +384,19 @@ function handleGameClick(x, y)
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
                 validMoves = {}
-            elseif pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == currentPlayer then
+            elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
                 selectedPiece = pieces[i][j]
                 selectedX, selectedY = i, j
-                validMoves = getValidMoves(i, j)
+                validMoves = Chess.getValidMoves(pieces, enPassantTarget, i, j)
             else
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
                 validMoves = {}
             end
-        elseif pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == currentPlayer then
+        elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
             selectedPiece = pieces[i][j]
             selectedX, selectedY = i, j
-            validMoves = getValidMoves(i, j)
+            validMoves = Chess.getValidMoves(pieces, enPassantTarget, i, j)
         else
             selectedPiece = nil
             selectedX, selectedY = nil, nil
@@ -435,7 +415,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
 
     -- Draw chess notation coordinates
     love.graphics.setColor(1, 1, 1)
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     for i = 1, 8 do
         local letter = string.char(96 + i):upper()
         local number = tostring(9 - i)
@@ -494,7 +474,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
         local targetPiece = pieces[move[1]][move[2]]
         local isEpCapture = enPassantTarget and selectedPiece and selectedPiece:match("pawn") and
                             move[1] == enPassantTarget[1] and move[2] == enPassantTarget[2]
-        if (targetPiece ~= "" and getPieceColour(targetPiece) ~= currentPlayer) or isEpCapture then
+        if (targetPiece ~= "" and Chess.getPieceColour(targetPiece) ~= currentPlayer) or isEpCapture then
             love.graphics.setColor(Theme.checkRed)
         else
             love.graphics.setColor(Theme.moveAmber)
@@ -506,13 +486,13 @@ end
 
 function drawUI(boardX, boardY, boardSize)
     -- Draw current player
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Current Player: ", boardX, boardY - (uiHeight + 20))
     love.graphics.print(currentPlayer, boardX, boardY - uiHeight + 10)
-    
+
     -- Draw Latest Move
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Latest Move: ", boardX + 200, boardY - (uiHeight + 20))
     love.graphics.print(latestMove, boardX + 200, boardY - uiHeight + 10)
@@ -523,9 +503,9 @@ function drawUI(boardX, boardY, boardSize)
         local badgeY = boardY - uiHeight - 20
         love.graphics.setColor(Theme.checkBadge)
         love.graphics.rectangle("fill", badgeX, badgeY, badgeWidth, badgeHeight, 4, 4)
-        love.graphics.setFont(boldFont)
+        love.graphics.setFont(Theme.boldFont)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("CHECK", badgeX, badgeY + (badgeHeight - boldFont:getHeight()) / 2, badgeWidth, "center")
+        love.graphics.printf("CHECK", badgeX, badgeY + (badgeHeight - Theme.boldFont:getHeight()) / 2, badgeWidth, "center")
     end
 
     -- Draw resign button
@@ -538,12 +518,12 @@ function drawUI(boardX, boardY, boardSize)
         love.graphics.setColor(Theme.buttonRed)
     end
     love.graphics.rectangle("fill", resignButtonX, resignButtonY, resignButtonWidth, 30)
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Resign", resignButtonX, resignButtonY + (30 - regularFont:getHeight()) / 2, resignButtonWidth, "center")
+    love.graphics.printf("Resign", resignButtonX, resignButtonY + (30 - Theme.regularFont:getHeight()) / 2, resignButtonWidth, "center")
 
     -- Draw game time and turn time
-    love.graphics.setFont(regularFont)
+    love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime), boardX, boardY + boardSize + borderSize / 2 + 30)
     love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime), boardX + 200, boardY + boardSize + borderSize / 2 + 30)
@@ -563,9 +543,9 @@ end
 function switchPlayer()
     currentPlayer = currentPlayer == "white" and "black" or "white"
     turnStartTime = love.timer.getTime()
-    inCheck = isKingInCheck(currentPlayer)
+    inCheck = Chess.isKingInCheck(pieces, currentPlayer)
 
-    if not hasLegalMoves(currentPlayer) then
+    if not Chess.hasLegalMoves(pieces, enPassantTarget, currentPlayer) then
         if inCheck then
             gameOverResult = (currentPlayer == "white" and "Black" or "White") .. " wins by checkmate!"
         else
@@ -591,4 +571,3 @@ function isValidMove(i, j)
     end
     return false
 end
-

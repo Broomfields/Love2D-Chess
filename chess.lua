@@ -1,142 +1,41 @@
 -- chess.lua
 -- Pure chess logic with no Love2D dependencies.
--- All functions operate on the global `pieces` table (8x8 array of strings).
+-- All public functions take explicit `pieces` and `enPassantTarget` parameters.
 
-function getPieceColour(piece)
-    return piece:match("^white") and "white" or "black"
-end
+local Chess = {}
 
-function isKingInCheck(player)
-    local kingX, kingY
-    for i = 1, 8 do
-        for j = 1, 8 do
-            if pieces[i][j] == player .. "_king" then
-                kingX, kingY = i, j
-                break
-            end
+-- Shared helper: add {i, j} to moves if in bounds and not occupied by a friendly piece.
+local function addMoveIfValid(moves, pieces, pieceColour, i, j)
+    if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
+        if pieces[i][j] == "" or Chess.getPieceColour(pieces[i][j]) ~= pieceColour then
+            table.insert(moves, {i, j})
         end
     end
-
-    for i = 1, 8 do
-        for j = 1, 8 do
-            if pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) ~= player then
-                local moves = getRawMoves(i, j)
-                for _, move in ipairs(moves) do
-                    if move[1] == kingX and move[2] == kingY then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-
-    return false
 end
 
-function hasLegalMoves(player)
-    for i = 1, 8 do
-        for j = 1, 8 do
-            if pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == player then
-                if #getValidMoves(i, j) > 0 then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
-function getRawMoves(x, y)
-    local piece = pieces[x][y]
-    local pieceColour = getPieceColour(piece)
-    local moves = {}
-
-    if piece:match("pawn") then
-        moves = getPawnMoves(x, y, pieceColour)
-    elseif piece:match("rook") then
-        moves = getRookMoves(x, y, pieceColour)
-    elseif piece:match("knight") then
-        moves = getKnightMoves(x, y, pieceColour)
-    elseif piece:match("bishop") then
-        moves = getBishopMoves(x, y, pieceColour)
-    elseif piece:match("queen") then
-        moves = getQueenMoves(x, y, pieceColour)
-    elseif piece:match("king") then
-        moves = getKingMoves(x, y, pieceColour)
-    end
-
-    return moves
-end
-
-function filterLegalMoves(fromX, fromY, candidates, pieceColour)
-    local legal = {}
-    for _, move in ipairs(candidates) do
-        local toX, toY = move[1], move[2]
-        local savedFrom = pieces[fromX][fromY]
-        local savedTo   = pieces[toX][toY]
-        pieces[toX][toY]     = savedFrom
-        pieces[fromX][fromY] = ""
-
-        -- En passant: temporarily remove the captured pawn (at {fromX, toY})
-        -- so the legality check correctly detects horizontal pins.
-        local epCaptureRow, epCaptureCol, savedEpPawn
-        if enPassantTarget and savedFrom:match("pawn") and
-           toX == enPassantTarget[1] and toY == enPassantTarget[2] then
-            epCaptureRow, epCaptureCol = fromX, toY
-            savedEpPawn = pieces[epCaptureRow][epCaptureCol]
-            pieces[epCaptureRow][epCaptureCol] = ""
-        end
-
-        local stillInCheck = isKingInCheck(pieceColour)
-        pieces[fromX][fromY] = savedFrom
-        pieces[toX][toY]     = savedTo
-        if epCaptureRow then
-            pieces[epCaptureRow][epCaptureCol] = savedEpPawn
-        end
-
-        if not stillInCheck then
-            table.insert(legal, move)
-        end
-    end
-    return legal
-end
-
-function getValidMoves(x, y)
-    local piece = pieces[x][y]
-    local pieceColour = getPieceColour(piece)
-    local candidates = getRawMoves(x, y)
-    return filterLegalMoves(x, y, candidates, pieceColour)
-end
-
-function getPawnMoves(x, y, pieceColour)
+local function getPawnMoves(pieces, enPassantTarget, x, y, pieceColour)
     local moves = {}
     local direction = pieceColour == "white" and -1 or 1
-    local startRow = pieceColour == "white" and 7 or 2
+    local startRow  = pieceColour == "white" and 7 or 2
 
-    local function addMoveIfValid(i, j)
-        if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
-                table.insert(moves, {i, j})
-            end
-        end
-    end
-
-    -- Normal move
+    -- Forward move(s)
     if x + direction >= 1 and x + direction <= 8 and pieces[x + direction][y] == "" then
-        addMoveIfValid(x + direction, y)
-        -- Double move from start position
-        if x == startRow and x + 2 * direction >= 1 and x + 2 * direction <= 8 and pieces[x + 2 * direction][y] == "" then
-            addMoveIfValid(x + 2 * direction, y)
+        addMoveIfValid(moves, pieces, pieceColour, x + direction, y)
+        if x == startRow and x + 2 * direction >= 1 and x + 2 * direction <= 8
+                         and pieces[x + 2 * direction][y] == "" then
+            addMoveIfValid(moves, pieces, pieceColour, x + 2 * direction, y)
         end
     end
 
-    -- Captures
+    -- Diagonal captures
     if x + direction >= 1 and x + direction <= 8 then
-        if y > 1 and pieces[x + direction][y - 1] ~= "" and getPieceColour(pieces[x + direction][y - 1]) ~= pieceColour then
-            addMoveIfValid(x + direction, y - 1)
+        if y > 1 and pieces[x + direction][y - 1] ~= ""
+                 and Chess.getPieceColour(pieces[x + direction][y - 1]) ~= pieceColour then
+            addMoveIfValid(moves, pieces, pieceColour, x + direction, y - 1)
         end
-        if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
-            addMoveIfValid(x + direction, y + 1)
+        if y < 8 and pieces[x + direction][y + 1] ~= ""
+                 and Chess.getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
+            addMoveIfValid(moves, pieces, pieceColour, x + direction, y + 1)
         end
     end
 
@@ -151,159 +50,228 @@ function getPawnMoves(x, y, pieceColour)
     return moves
 end
 
-function getRookMoves(x, y, pieceColour)
+local function getRookMoves(pieces, x, y, pieceColour)
     local moves = {}
-
-    local function addMoveIfValid(i, j)
-        if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
-                table.insert(moves, {i, j})
-            end
-        end
-    end
-
     for i = x + 1, 8 do
-        if pieces[i][y] == "" then
-            addMoveIfValid(i, y)
-        else
-            addMoveIfValid(i, y)
-            break
-        end
+        addMoveIfValid(moves, pieces, pieceColour, i, y)
+        if pieces[i][y] ~= "" then break end
     end
     for i = x - 1, 1, -1 do
-        if pieces[i][y] == "" then
-            addMoveIfValid(i, y)
-        else
-            addMoveIfValid(i, y)
-            break
-        end
+        addMoveIfValid(moves, pieces, pieceColour, i, y)
+        if pieces[i][y] ~= "" then break end
     end
     for j = y + 1, 8 do
-        if pieces[x][j] == "" then
-            addMoveIfValid(x, j)
-        else
-            addMoveIfValid(x, j)
-            break
-        end
+        addMoveIfValid(moves, pieces, pieceColour, x, j)
+        if pieces[x][j] ~= "" then break end
     end
     for j = y - 1, 1, -1 do
-        if pieces[x][j] == "" then
-            addMoveIfValid(x, j)
-        else
-            addMoveIfValid(x, j)
-            break
-        end
+        addMoveIfValid(moves, pieces, pieceColour, x, j)
+        if pieces[x][j] ~= "" then break end
     end
-
     return moves
 end
 
-function getKnightMoves(x, y, pieceColour)
+local function getKnightMoves(pieces, x, y, pieceColour)
     local moves = {}
-
-    local function addMoveIfValid(i, j)
-        if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
-                table.insert(moves, {i, j})
-            end
-        end
-    end
-
-    local knightMoves = {
+    local offsets = {
         {x + 2, y + 1}, {x + 2, y - 1}, {x - 2, y + 1}, {x - 2, y - 1},
-        {x + 1, y + 2}, {x + 1, y - 2}, {x - 1, y + 2}, {x - 1, y - 2}
+        {x + 1, y + 2}, {x + 1, y - 2}, {x - 1, y + 2}, {x - 1, y - 2},
     }
-    for _, move in ipairs(knightMoves) do
-        addMoveIfValid(move[1], move[2])
-    end
-
-    return moves
-end
-
-function getBishopMoves(x, y, pieceColour)
-    local moves = {}
-
-    local function addMoveIfValid(i, j)
-        if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
-                table.insert(moves, {i, j})
-            end
-        end
-    end
-
-    for i = 1, 7 do
-        if x + i <= 8 and y + i <= 8 then
-            if pieces[x + i][y + i] == "" then
-                addMoveIfValid(x + i, y + i)
-            else
-                addMoveIfValid(x + i, y + i)
-                break
-            end
-        end
-    end
-    for i = 1, 7 do
-        if x + i <= 8 and y - i >= 1 then
-            if pieces[x + i][y - i] == "" then
-                addMoveIfValid(x + i, y - i)
-            else
-                addMoveIfValid(x + i, y - i)
-                break
-            end
-        end
-    end
-    for i = 1, 7 do
-        if x - i >= 1 and y + i <= 8 then
-            if pieces[x - i][y + i] == "" then
-                addMoveIfValid(x - i, y + i)
-            else
-                addMoveIfValid(x - i, y + i)
-                break
-            end
-        end
-    end
-    for i = 1, 7 do
-        if x - i >= 1 and y - i >= 1 then
-            if pieces[x - i][y - i] == "" then
-                addMoveIfValid(x - i, y - i)
-            else
-                addMoveIfValid(x - i, y - i)
-                break
-            end
-        end
-    end
-
-    return moves
-end
-
-function getQueenMoves(x, y, pieceColour)
-    local moves = {}
-    for _, move in ipairs(getRookMoves(x, y, pieceColour)) do
-        table.insert(moves, move)
-    end
-    for _, move in ipairs(getBishopMoves(x, y, pieceColour)) do
-        table.insert(moves, move)
+    for _, o in ipairs(offsets) do
+        addMoveIfValid(moves, pieces, pieceColour, o[1], o[2])
     end
     return moves
 end
 
-function getKingMoves(x, y, pieceColour)
+local function getBishopMoves(pieces, x, y, pieceColour)
     local moves = {}
-
-    local function addMoveIfValid(i, j)
-        if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
-            if pieces[i][j] == "" or getPieceColour(pieces[i][j]) ~= pieceColour then
-                table.insert(moves, {i, j})
-            end
-        end
+    for i = 1, 7 do
+        if x + i > 8 or y + i > 8 then break end
+        addMoveIfValid(moves, pieces, pieceColour, x + i, y + i)
+        if pieces[x + i][y + i] ~= "" then break end
     end
+    for i = 1, 7 do
+        if x + i > 8 or y - i < 1 then break end
+        addMoveIfValid(moves, pieces, pieceColour, x + i, y - i)
+        if pieces[x + i][y - i] ~= "" then break end
+    end
+    for i = 1, 7 do
+        if x - i < 1 or y + i > 8 then break end
+        addMoveIfValid(moves, pieces, pieceColour, x - i, y + i)
+        if pieces[x - i][y + i] ~= "" then break end
+    end
+    for i = 1, 7 do
+        if x - i < 1 or y - i < 1 then break end
+        addMoveIfValid(moves, pieces, pieceColour, x - i, y - i)
+        if pieces[x - i][y - i] ~= "" then break end
+    end
+    return moves
+end
 
-    local kingMoves = {
+local function getKingMoves(pieces, x, y, pieceColour)
+    local moves = {}
+    local offsets = {
         {x + 1, y}, {x - 1, y}, {x, y + 1}, {x, y - 1},
-        {x + 1, y + 1}, {x + 1, y - 1}, {x - 1, y + 1}, {x - 1, y - 1}
+        {x + 1, y + 1}, {x + 1, y - 1}, {x - 1, y + 1}, {x - 1, y - 1},
     }
-    for _, move in ipairs(kingMoves) do
-        addMoveIfValid(move[1], move[2])
+    for _, o in ipairs(offsets) do
+        addMoveIfValid(moves, pieces, pieceColour, o[1], o[2])
     end
-
     return moves
 end
+
+local function getQueenMoves(pieces, x, y, pieceColour)
+    local moves = {}
+    for _, m in ipairs(getRookMoves(pieces, x, y, pieceColour)) do
+        table.insert(moves, m)
+    end
+    for _, m in ipairs(getBishopMoves(pieces, x, y, pieceColour)) do
+        table.insert(moves, m)
+    end
+    return moves
+end
+
+-- Returns raw (pre-filter) moves for a piece; used for check detection and testing.
+-- Note: en passant is excluded from raw moves (it is not an attack on the king).
+local function getRawMoves(pieces, x, y)
+    local piece = pieces[x][y]
+    local pieceColour = Chess.getPieceColour(piece)
+    if piece:match("pawn")   then return getPawnMoves(pieces, nil, x, y, pieceColour) end
+    if piece:match("rook")   then return getRookMoves(pieces, x, y, pieceColour) end
+    if piece:match("knight") then return getKnightMoves(pieces, x, y, pieceColour) end
+    if piece:match("bishop") then return getBishopMoves(pieces, x, y, pieceColour) end
+    if piece:match("queen")  then return getQueenMoves(pieces, x, y, pieceColour) end
+    if piece:match("king")   then return getKingMoves(pieces, x, y, pieceColour) end
+    return {}
+end
+
+function Chess.getPieceColour(piece)
+    return piece:match("^white") and "white" or "black"
+end
+
+function Chess.isKingInCheck(pieces, player)
+    local kingX, kingY
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] == player .. "_king" then
+                kingX, kingY = i, j
+                break
+            end
+        end
+    end
+
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) ~= player then
+                local moves = getRawMoves(pieces, i, j)
+                for _, move in ipairs(moves) do
+                    if move[1] == kingX and move[2] == kingY then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+local function filterLegalMoves(pieces, enPassantTarget, fromX, fromY, candidates, pieceColour)
+    local legal = {}
+    for _, move in ipairs(candidates) do
+        local toX, toY = move[1], move[2]
+        local savedFrom = pieces[fromX][fromY]
+        local savedTo   = pieces[toX][toY]
+        pieces[toX][toY]     = savedFrom
+        pieces[fromX][fromY] = ""
+
+        -- Temporarily remove en-passant-captured pawn to test for horizontal pins.
+        local epRow, epCol, savedEpPawn
+        if enPassantTarget and savedFrom:match("pawn") and
+                toX == enPassantTarget[1] and toY == enPassantTarget[2] then
+            epRow, epCol = fromX, toY
+            savedEpPawn = pieces[epRow][epCol]
+            pieces[epRow][epCol] = ""
+        end
+
+        local stillInCheck = Chess.isKingInCheck(pieces, pieceColour)
+        pieces[fromX][fromY] = savedFrom
+        pieces[toX][toY]     = savedTo
+        if epRow then pieces[epRow][epCol] = savedEpPawn end
+
+        if not stillInCheck then
+            table.insert(legal, move)
+        end
+    end
+    return legal
+end
+
+function Chess.getValidMoves(pieces, enPassantTarget, x, y)
+    local piece = pieces[x][y]
+    local pieceColour = Chess.getPieceColour(piece)
+    local candidates
+    if piece:match("pawn") then
+        candidates = getPawnMoves(pieces, enPassantTarget, x, y, pieceColour)
+    else
+        candidates = getRawMoves(pieces, x, y)
+    end
+    return filterLegalMoves(pieces, enPassantTarget, x, y, candidates, pieceColour)
+end
+
+-- Exposed for tests that verify raw move counts (e.g. knight geometry).
+Chess.getRawMoves = getRawMoves
+
+function Chess.hasLegalMoves(pieces, enPassantTarget, player)
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == player then
+                if #Chess.getValidMoves(pieces, enPassantTarget, i, j) > 0 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Executes a move on the pieces table (mutates in place) and returns a result descriptor.
+-- Handles en passant capture and notation. Does NOT handle pawn promotion placement.
+function Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, toRow, toCol)
+    local movedPiece  = pieces[fromRow][fromCol]
+    local targetPiece = pieces[toRow][toCol]
+    pieces[toRow][toCol]    = movedPiece
+    pieces[fromRow][fromCol] = ""
+
+    local isEnPassant = enPassantTarget and movedPiece:match("pawn") and
+                        toRow == enPassantTarget[1] and toCol == enPassantTarget[2]
+    if isEnPassant then
+        pieces[fromRow][toCol] = ""  -- remove the captured pawn
+    end
+
+    -- Move notation
+    local dest = string.char(96 + toCol):upper() .. tostring(9 - toRow)
+    local notation
+    if isEnPassant then
+        notation = movedPiece .. " takes " .. dest .. " e.p."
+    elseif targetPiece ~= "" then
+        notation = movedPiece .. " takes " .. dest
+    else
+        notation = movedPiece .. " to " .. dest
+    end
+
+    -- New en passant target (set when a pawn double-advances)
+    local newEnPassantTarget = nil
+    if movedPiece:match("pawn") and math.abs(toRow - fromRow) == 2 then
+        newEnPassantTarget = {(toRow + fromRow) / 2, toCol}
+    end
+
+    return {
+        notation           = notation,
+        captured           = isEnPassant and "en_passant" or targetPiece,
+        isPromotion        = (movedPiece == "white_pawn" and toRow == 1)
+                          or (movedPiece == "black_pawn" and toRow == 8),
+        newEnPassantTarget = newEnPassantTarget,
+    }
+end
+
+return Chess

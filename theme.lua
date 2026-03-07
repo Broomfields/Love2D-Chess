@@ -34,4 +34,10 @@ Theme.popupDim       = {0, 0, 0, 0.5}
 Theme.popupItemHov   = {1, 1, 1, 0.2}
 Theme.popupItemBg    = {0.65, 0.65, 0.65}
 
+-- Call once from love.load() to initialise font resources.
+function Theme.load()
+    Theme.boldFont    = love.graphics.newFont("assets/fonts/OpenDyslexic-Bold.otf", 14)
+    Theme.regularFont = love.graphics.newFont("assets/fonts/OpenDyslexic-Regular.otf", 14)
+end
+
 return Theme
