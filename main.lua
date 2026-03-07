@@ -488,9 +488,15 @@ function drawUI(boardX, boardY, boardSize)
     love.graphics.print("Latest Move: ", boardX + 200, boardY - (uiHeight + 20))
     love.graphics.print(latestMove, boardX + 200, boardY - uiHeight + 10)
     if inCheck then
+        local badgeWidth = 80
+        local badgeHeight = 28
+        local badgeX = boardX + boardSize - badgeWidth
+        local badgeY = boardY - uiHeight - 20
+        love.graphics.setColor(0.85, 0.1, 0.1)
+        love.graphics.rectangle("fill", badgeX, badgeY, badgeWidth, badgeHeight, 4, 4)
         love.graphics.setFont(boldFont)
-        love.graphics.setColor(1, 0, 0)
-        love.graphics.printf("CHECK", boardX, boardY - uiHeight + 10, boardSize, "center")
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.printf("CHECK", badgeX, badgeY + 7, badgeWidth, "center")
     end
 
     -- Draw resign button
@@ -857,7 +863,12 @@ function drawGameOver()
     love.graphics.setFont(boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Game Over", 0, windowHeight / 4, windowWidth, "center")
-    love.graphics.setFont(regularFont)
+    if gameOverResult:find("checkmate") then
+        love.graphics.setColor(1, 0.2, 0.2)
+    else
+        love.graphics.setColor(0.9, 0.9, 0.9)
+    end
+    love.graphics.setFont(boldFont)
     love.graphics.printf(gameOverResult, 0, windowHeight / 2 - 20, windowWidth, "center")
 
     local buttonWidth = 200
