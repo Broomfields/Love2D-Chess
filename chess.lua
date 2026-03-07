@@ -76,9 +76,24 @@ function filterLegalMoves(fromX, fromY, candidates, pieceColour)
         local savedTo   = pieces[toX][toY]
         pieces[toX][toY]     = savedFrom
         pieces[fromX][fromY] = ""
+
+        -- En passant: temporarily remove the captured pawn (at {fromX, toY})
+        -- so the legality check correctly detects horizontal pins.
+        local epCaptureRow, epCaptureCol, savedEpPawn
+        if enPassantTarget and savedFrom:match("pawn") and
+           toX == enPassantTarget[1] and toY == enPassantTarget[2] then
+            epCaptureRow, epCaptureCol = fromX, toY
+            savedEpPawn = pieces[epCaptureRow][epCaptureCol]
+            pieces[epCaptureRow][epCaptureCol] = ""
+        end
+
         local stillInCheck = isKingInCheck(pieceColour)
         pieces[fromX][fromY] = savedFrom
         pieces[toX][toY]     = savedTo
+        if epCaptureRow then
+            pieces[epCaptureRow][epCaptureCol] = savedEpPawn
+        end
+
         if not stillInCheck then
             table.insert(legal, move)
         end
@@ -122,6 +137,14 @@ function getPawnMoves(x, y, pieceColour)
         end
         if y < 8 and pieces[x + direction][y + 1] ~= "" and getPieceColour(pieces[x + direction][y + 1]) ~= pieceColour then
             addMoveIfValid(x + direction, y + 1)
+        end
+    end
+
+    -- En passant
+    if enPassantTarget then
+        local epRow, epCol = enPassantTarget[1], enPassantTarget[2]
+        if x + direction == epRow and math.abs(y - epCol) == 1 then
+            table.insert(moves, {epRow, epCol})
         end
     end
 

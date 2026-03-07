@@ -38,6 +38,7 @@ function initialiseGame()
     latestMove = ""
     inCheck = false
     gameOverResult = ""
+    enPassantTarget = nil
 
     pieceImages = {
         white_pawn = love.graphics.newImage("assets/images/white_pawn.png"),
@@ -350,13 +351,24 @@ function handleGameClick(x, y)
     if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
         if selectedPiece then
             if isValidMove(i, j) then
+                local fromRow, fromCol = selectedX, selectedY
+                local movedPiece = selectedPiece
                 local targetPiece = pieces[i][j]
-                pieces[i][j] = selectedPiece
-                pieces[selectedX][selectedY] = ""                        
+                pieces[i][j] = movedPiece
+                pieces[fromRow][fromCol] = ""
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
                 validMoves = {}
-                if targetPiece ~= "" then
+
+                -- En passant capture: destination was empty; remove the skipped pawn
+                local isEnPassant = enPassantTarget and movedPiece:match("pawn") and
+                                    i == enPassantTarget[1] and j == enPassantTarget[2]
+                if isEnPassant then
+                    pieces[fromRow][j] = ""
+                    latestMove = movedPiece .. " takes " .. string.char(96 + j):upper() .. tostring(9 - i) .. " e.p."
+                    pieceTakenSound:setPitch(math.random(8, 32) / 16)
+                    love.audio.play(pieceTakenSound)
+                elseif targetPiece ~= "" then
                     latestMove = pieces[i][j] .. " takes " .. string.char(96 + j):upper() .. tostring(9 - i)
                     pieceTakenSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
                     love.audio.play(pieceTakenSound)
@@ -366,7 +378,13 @@ function handleGameClick(x, y)
                     love.audio.play(pieceMovedSound)
                 end
 
-                local movedPiece = pieces[i][j]
+                -- Update en passant target for the opponent's next move
+                if movedPiece:match("pawn") and math.abs(i - fromRow) == 2 then
+                    enPassantTarget = {(i + fromRow) / 2, j}
+                else
+                    enPassantTarget = nil
+                end
+
                 local promoting = (movedPiece == "white_pawn" and i == 1)
                                or (movedPiece == "black_pawn" and i == 8)
                 if promoting then
@@ -474,7 +492,9 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
 
     for _, move in ipairs(validMoves) do
         local targetPiece = pieces[move[1]][move[2]]
-        if targetPiece ~= "" and getPieceColour(targetPiece) ~= currentPlayer then
+        local isEpCapture = enPassantTarget and selectedPiece and selectedPiece:match("pawn") and
+                            move[1] == enPassantTarget[1] and move[2] == enPassantTarget[2]
+        if (targetPiece ~= "" and getPieceColour(targetPiece) ~= currentPlayer) or isEpCapture then
             love.graphics.setColor(Theme.checkRed)
         else
             love.graphics.setColor(Theme.moveAmber)

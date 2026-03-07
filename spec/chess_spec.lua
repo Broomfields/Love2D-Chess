@@ -218,6 +218,62 @@ describe("pinned pieces", function()
 end)
 
 -- ─────────────────────────────────────────────
+describe("en passant", function()
+    -- Board coordinates: row 1 = rank 8 (black side), row 8 = rank 1 (white side)
+    -- White pawns move in direction -1 (toward row 1); black pawns +1 (toward row 8)
+
+    it("white pawn can capture en passant when target is set", function()
+        emptyBoard()
+        -- White pawn at D5 (row 4, col 4), black pawn just double-advanced to E5 (row 4, col 5)
+        -- En passant target = E6 (row 3, col 5) — the square the black pawn skipped
+        pieces[4][4] = "white_pawn"
+        pieces[4][5] = "black_pawn"
+        pieces[8][5] = "white_king"   -- keep kings off the pin rays
+        pieces[1][5] = "black_king"
+        _G.enPassantTarget = {3, 5}
+        local moves = getValidMoves(4, 4)
+        local hasEP = false
+        for _, m in ipairs(moves) do
+            if m[1] == 3 and m[2] == 5 then hasEP = true end
+        end
+        assert.is_true(hasEP)
+        _G.enPassantTarget = nil
+    end)
+
+    it("en passant move is absent when enPassantTarget is nil", function()
+        emptyBoard()
+        pieces[4][4] = "white_pawn"
+        pieces[4][5] = "black_pawn"
+        pieces[8][5] = "white_king"
+        pieces[1][5] = "black_king"
+        _G.enPassantTarget = nil
+        local moves = getValidMoves(4, 4)
+        for _, m in ipairs(moves) do
+            assert.is_false(m[1] == 3 and m[2] == 5)
+        end
+    end)
+
+    it("en passant is filtered out when it exposes the king to a horizontal pin", function()
+        emptyBoard()
+        -- White king at A5 (row 4, col 1), white pawn at D5 (row 4, col 4),
+        -- black pawn at E5 (row 4, col 5), black rook at H5 (row 4, col 8).
+        -- Capturing en passant removes both pawns from rank 5, leaving the king
+        -- exposed to the rook along the rank → must be filtered out.
+        pieces[4][1] = "white_king"
+        pieces[4][4] = "white_pawn"
+        pieces[4][5] = "black_pawn"
+        pieces[4][8] = "black_rook"
+        pieces[1][1] = "black_king"
+        _G.enPassantTarget = {3, 5}
+        local moves = getValidMoves(4, 4)
+        for _, m in ipairs(moves) do
+            assert.is_false(m[1] == 3 and m[2] == 5, "en passant should be filtered (exposes king)")
+        end
+        _G.enPassantTarget = nil
+    end)
+end)
+
+-- ─────────────────────────────────────────────
 describe("stalemate detection", function()
     it("a player with no legal moves but not in check has no legal moves", function()
         -- Classic stalemate: black king at A8, white queen at B6, white king at C6
