@@ -1,4 +1,7 @@
 require("chess")
+local Theme  = require("theme")
+local Popup  = require("ui")
+local Popups = require("popups")
 
 local gameState = "menu"
 local hoveredButton = nil
@@ -14,16 +17,8 @@ function initialiseGame()
     for i = 1, 8 do
         board[i] = {}
         for j = 1, 8 do
-            board[i][j] = {piece = nil, colour = (i + j) % 2 == 0 and {1, 1, 1} or {0, 0, 0}}
+            board[i][j] = {piece = nil, colour = (i + j) % 2 == 0 and Theme.boardLight or Theme.boardDark}
         end
-    end
-    whiteColour = {1, 1, 1}
-    blackColour = {0, 0, 0}
-    backgroundColour = {0, 0, 0}
-    borderColour = {0, 0, 0}
-    function hexToRgb(hex)
-        hex = hex:gsub("#", "")
-        return {tonumber("0x" .. hex:sub(1, 2)) / 255, tonumber("0x" .. hex:sub(3, 4)) / 255, tonumber("0x" .. hex:sub(5, 6)) / 255}
     end
     selectedPiece = nil
     selectedX, selectedY = nil, nil
@@ -43,18 +38,6 @@ function initialiseGame()
     latestMove = ""
     inCheck = false
     gameOverResult = ""
-
-    -- Example of changing colours using hex codes
-    whiteColour = hexToRgb("#EBECD3")
-    blackColour = hexToRgb("#7D945D")
-    backgroundColour = hexToRgb("#B4C098")
-    borderColour = hexToRgb("#453643")
-
-    for i = 1, 8 do
-        for j = 1, 8 do
-            board[i][j].colour = (i + j) % 2 == 0 and whiteColour or blackColour
-        end
-    end
 
     pieceImages = {
         white_pawn = love.graphics.newImage("assets/images/white_pawn.png"),
@@ -90,14 +73,12 @@ function love.draw()
         drawGame()
     elseif gameState == "options" then
         drawOptions()
-    elseif gameState == "gameover" then
-        drawGameOver()
     end
 end
 
 function drawMenu()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    love.graphics.clear(backgroundColour)
+    love.graphics.clear(Theme.background)
     love.graphics.setFont(boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Basic Chess Game", 0, windowHeight / 4, windowWidth, "center")
@@ -106,43 +87,46 @@ function drawMenu()
     local buttonHeight = 50
     local buttonX = (windowWidth - buttonWidth) / 2
 
+    love.graphics.setFont(regularFont)
+    local btnFH = regularFont:getHeight()
+
     -- Play Game button
     local playButtonY = windowHeight / 2 - buttonHeight - 10
     if hoveredButton == "play" then
-        love.graphics.setColor(0.3, 0.7, 0.3)
+        love.graphics.setColor(Theme.buttonGreenHov)
     else
-        love.graphics.setColor(0.2, 0.6, 0.2)
+        love.graphics.setColor(Theme.buttonGreen)
     end
     love.graphics.rectangle("fill", buttonX, playButtonY, buttonWidth, buttonHeight)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Play Game", buttonX, playButtonY + 15, buttonWidth, "center")
+    love.graphics.printf("Play Game", buttonX, playButtonY + (buttonHeight - btnFH) / 2, buttonWidth, "center")
 
     -- Options button
     local optionsButtonY = windowHeight / 2
     if hoveredButton == "options" then
-        love.graphics.setColor(0.3, 0.7, 0.3)
+        love.graphics.setColor(Theme.buttonGreenHov)
     else
-        love.graphics.setColor(0.2, 0.6, 0.2)
+        love.graphics.setColor(Theme.buttonGreen)
     end
     love.graphics.rectangle("fill", buttonX, optionsButtonY, buttonWidth, buttonHeight)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Options", buttonX, optionsButtonY + 15, buttonWidth, "center")
+    love.graphics.printf("Options", buttonX, optionsButtonY + (buttonHeight - btnFH) / 2, buttonWidth, "center")
 
     -- Exit button
     local exitButtonY = windowHeight / 2 + buttonHeight + 10
     if hoveredButton == "exit" then
-        love.graphics.setColor(0.9, 0.2, 0.2)
+        love.graphics.setColor(Theme.buttonRedHov)
     else
-        love.graphics.setColor(0.8, 0.1, 0.1)
+        love.graphics.setColor(Theme.buttonRed)
     end
     love.graphics.rectangle("fill", buttonX, exitButtonY, buttonWidth, buttonHeight)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Exit", buttonX, exitButtonY + 15, buttonWidth, "center")
+    love.graphics.printf("Exit", buttonX, exitButtonY + (buttonHeight - btnFH) / 2, buttonWidth, "center")
 end
 
 function drawOptions()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    love.graphics.clear(backgroundColour)
+    love.graphics.clear(Theme.background)
     love.graphics.setFont(boldFont)
     love.graphics.setColor(1, 1, 1)
     love.graphics.printf("Options", 0, windowHeight / 4, windowWidth, "center")
@@ -156,13 +140,13 @@ function drawOptions()
     -- Return button
     local returnButtonY = windowHeight / 2 + buttonHeight + 10
     if hoveredButton == "return" then
-        love.graphics.setColor(0.3, 0.7, 0.3)
+        love.graphics.setColor(Theme.buttonGreenHov)
     else
-        love.graphics.setColor(0.2, 0.6, 0.2)
+        love.graphics.setColor(Theme.buttonGreen)
     end
     love.graphics.rectangle("fill", buttonX, returnButtonY, buttonWidth, buttonHeight)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Return", buttonX, returnButtonY + 15, buttonWidth, "center")
+    love.graphics.printf("Return", buttonX, returnButtonY + (buttonHeight - regularFont:getHeight()) / 2, buttonWidth, "center")
 end
 
 function drawGame()
@@ -172,40 +156,43 @@ function drawGame()
     local boardX = (windowWidth - boardSize) / 2
     local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
 
-    -- Set background colour to Poker green
-    love.graphics.clear(backgroundColour)
+    love.graphics.clear(Theme.background)
 
     -- Draw the board
     drawBoard(boardX, boardY, squareSize, boardSize)
 
     -- Draw UI elements
     drawUI(boardX, boardY, boardSize)
+
+    Popup.draw()
 end
 
 function love.mousepressed(x, y, button)
     if button == 1 then
+        if Popup.isOpen() then Popup.mousepressed(x, y); return end
         if gameState == "menu" then
             handleMenuClick(x, y)
         elseif gameState == "playing" then
             handleGameClick(x, y)
         elseif gameState == "options" then
             handleOptionsClick(x, y)
-        elseif gameState == "gameover" then
-            handleGameOverClick(x, y)
         end
     end
 end
 
 function love.mousemoved(x, y, dx, dy)
+    if Popup.isOpen() then Popup.mousemoved(x, y); return end
     if gameState == "menu" then
         handleMenuHover(x, y)
     elseif gameState == "playing" then
         handleGameHover(x, y)
     elseif gameState == "options" then
         handleOptionsHover(x, y)
-    elseif gameState == "gameover" then
-        handleGameOverHover(x, y)
     end
+end
+
+function love.mousereleased(x, y, button)
+    if button == 1 then Popup.mousereleased() end
 end
 
 function handleMenuHover(x, y)
@@ -348,11 +335,15 @@ function handleGameClick(x, y)
     local resignButtonX = boardX + boardSize - resignButtonWidth
     local resignButtonY = boardY + boardSize + borderSize / 2 + 30
     if x >= resignButtonX and x <= resignButtonX + resignButtonWidth and y >= resignButtonY and y <= resignButtonY + 30 then
-        -- Play Button Click Sound
-        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+        buttonClickSound:setPitch(math.random(8, 32) / 16)
         love.audio.play(buttonClickSound)
-
-        gameState = "menu"
+        local cfg = Popups.resignConfirm()
+        cfg.onButton = function(label)
+            Popup.hide()
+            if label == "Yes, Resign" then gameState = "menu" end
+        end
+        hoveredButton = nil
+        Popup.show(cfg)
         return
     end
 
@@ -374,7 +365,23 @@ function handleGameClick(x, y)
                     pieceMovedSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
                     love.audio.play(pieceMovedSound)
                 end
-                switchPlayer()
+
+                local movedPiece = pieces[i][j]
+                local promoting = (movedPiece == "white_pawn" and i == 1)
+                               or (movedPiece == "black_pawn" and i == 8)
+                if promoting then
+                    local promRow, promCol = i, j
+                    local cfg = Popups.pawnPromotion(currentPlayer, pieceImages)
+                    cfg.onPick = function(value)
+                        pieces[promRow][promCol] = value
+                        Popup.hide()
+                        switchPlayer()
+                    end
+                    hoveredButton = nil
+                    Popup.show(cfg)
+                else
+                    switchPlayer()
+                end
             elseif selectedX == i and selectedY == j then
                 selectedPiece = nil
                 selectedX, selectedY = nil, nil
@@ -405,7 +412,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
     local cornerLength = 20
 
     -- Draw oak border around the board
-    love.graphics.setColor(borderColour)
+    love.graphics.setColor(Theme.border)
     love.graphics.rectangle("fill", boardX - borderSize, boardY - borderSize, boardSize + 2 * borderSize, boardSize + 2 * borderSize)
 
     -- Draw chess notation coordinates
@@ -438,12 +445,12 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
     end
 
     if hoveredX and hoveredY then
-        love.graphics.setColor(1, 0.5, 0, 0.5) -- Translucent orange
+        love.graphics.setColor(Theme.hoverOrange)
         love.graphics.rectangle("fill", boardX + (hoveredY - 1) * squareSize, boardY + (hoveredX - 1) * squareSize, squareSize, squareSize)
     end
 
     if selectedX and selectedY then
-        love.graphics.setColor(0, 0.75, 1) -- Sky blue
+        love.graphics.setColor(Theme.selectBlue)
         love.graphics.setLineWidth(borderWidth)
         love.graphics.rectangle("line", boardX + (selectedY - 1) * squareSize + borderWidth / 2, boardY + (selectedX - 1) * squareSize + borderWidth / 2, squareSize - borderWidth, squareSize - borderWidth)
     end
@@ -459,7 +466,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
             end
         end
         if kingX and kingY then
-            love.graphics.setColor(1, 0, 0) -- Red
+            love.graphics.setColor(Theme.checkRed)
             love.graphics.setLineWidth(borderWidth)
             love.graphics.rectangle("line", boardX + (kingY - 1) * squareSize + borderWidth / 2, boardY + (kingX - 1) * squareSize + borderWidth / 2, squareSize - borderWidth, squareSize - borderWidth)
         end
@@ -468,9 +475,9 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
     for _, move in ipairs(validMoves) do
         local targetPiece = pieces[move[1]][move[2]]
         if targetPiece ~= "" and getPieceColour(targetPiece) ~= currentPlayer then
-            love.graphics.setColor(1, 0, 0) -- Red
+            love.graphics.setColor(Theme.checkRed)
         else
-            love.graphics.setColor(1, 0.75, 0) -- Amber
+            love.graphics.setColor(Theme.moveAmber)
         end
         love.graphics.setLineWidth(borderWidth)
         drawCornerLines(boardX + (move[2] - 1) * squareSize + borderWidth / 2, boardY + (move[1] - 1) * squareSize + borderWidth / 2, squareSize - borderWidth, borderWidth, cornerLength)
@@ -494,11 +501,11 @@ function drawUI(boardX, boardY, boardSize)
         local badgeHeight = 28
         local badgeX = boardX + boardSize - badgeWidth
         local badgeY = boardY - uiHeight - 20
-        love.graphics.setColor(0.85, 0.1, 0.1)
+        love.graphics.setColor(Theme.checkBadge)
         love.graphics.rectangle("fill", badgeX, badgeY, badgeWidth, badgeHeight, 4, 4)
         love.graphics.setFont(boldFont)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("CHECK", badgeX, badgeY + 7, badgeWidth, "center")
+        love.graphics.printf("CHECK", badgeX, badgeY + (badgeHeight - boldFont:getHeight()) / 2, badgeWidth, "center")
     end
 
     -- Draw resign button
@@ -506,13 +513,14 @@ function drawUI(boardX, boardY, boardSize)
     local resignButtonX = boardX + boardSize - resignButtonWidth
     local resignButtonY = boardY + boardSize + borderSize / 2 + 30
     if hoveredButton == "resign" then
-        love.graphics.setColor(0.9, 0.2, 0.2)
+        love.graphics.setColor(Theme.buttonRedHov)
     else
-        love.graphics.setColor(0.8, 0.1, 0.1)
+        love.graphics.setColor(Theme.buttonRed)
     end
     love.graphics.rectangle("fill", resignButtonX, resignButtonY, resignButtonWidth, 30)
+    love.graphics.setFont(regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Resign", resignButtonX, resignButtonY + 7, resignButtonWidth, "center")
+    love.graphics.printf("Resign", resignButtonX, resignButtonY + (30 - regularFont:getHeight()) / 2, resignButtonWidth, "center")
 
     -- Draw game time and turn time
     love.graphics.setFont(regularFont)
@@ -543,7 +551,15 @@ function switchPlayer()
         else
             gameOverResult = "Draw by stalemate!"
         end
-        gameState = "gameover"
+        local cfg = Popups.gameOver(gameOverResult, inCheck)
+        cfg.onButton = function(label)
+            if label == "Main Menu" then
+                Popup.hide()
+                gameState = "menu"
+            end
+        end
+        hoveredButton = nil
+        Popup.show(cfg)
     end
 end
 
@@ -556,56 +572,3 @@ function isValidMove(i, j)
     return false
 end
 
-function drawGameOver()
-    local windowWidth, windowHeight = love.graphics.getDimensions()
-    love.graphics.clear(backgroundColour)
-    love.graphics.setFont(boldFont)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Game Over", 0, windowHeight / 4, windowWidth, "center")
-    if gameOverResult:find("checkmate") then
-        love.graphics.setColor(1, 0.2, 0.2)
-    else
-        love.graphics.setColor(0.9, 0.9, 0.9)
-    end
-    love.graphics.setFont(boldFont)
-    love.graphics.printf(gameOverResult, 0, windowHeight / 2 - 20, windowWidth, "center")
-
-    local buttonWidth = 200
-    local buttonHeight = 50
-    local buttonX = (windowWidth - buttonWidth) / 2
-    local menuButtonY = windowHeight / 2 + 40
-    if hoveredButton == "menu" then
-        love.graphics.setColor(0.3, 0.7, 0.3)
-    else
-        love.graphics.setColor(0.2, 0.6, 0.2)
-    end
-    love.graphics.rectangle("fill", buttonX, menuButtonY, buttonWidth, buttonHeight)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Main Menu", buttonX, menuButtonY + 15, buttonWidth, "center")
-end
-
-function handleGameOverHover(x, y)
-    local windowWidth, windowHeight = love.graphics.getDimensions()
-    local buttonWidth = 200
-    local buttonHeight = 50
-    local buttonX = (windowWidth - buttonWidth) / 2
-    local menuButtonY = windowHeight / 2 + 40
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= menuButtonY and y <= menuButtonY + buttonHeight then
-        hoveredButton = "menu"
-    else
-        hoveredButton = nil
-    end
-end
-
-function handleGameOverClick(x, y)
-    local windowWidth, windowHeight = love.graphics.getDimensions()
-    local buttonWidth = 200
-    local buttonHeight = 50
-    local buttonX = (windowWidth - buttonWidth) / 2
-    local menuButtonY = windowHeight / 2 + 40
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= menuButtonY and y <= menuButtonY + buttonHeight then
-        buttonClickSound:setPitch(math.random(8, 32) / 16)
-        love.audio.play(buttonClickSound)
-        gameState = "menu"
-    end
-end
