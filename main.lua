@@ -40,6 +40,7 @@ function initialiseGame()
     turnStartTime = love.timer.getTime()
     latestMove = ""
     inCheck = false
+    gameOverResult = ""
 
     -- Example of changing colours using hex codes
     whiteColour = hexToRgb("#EBECD3")
@@ -87,6 +88,8 @@ function love.draw()
         drawGame()
     elseif gameState == "options" then
         drawOptions()
+    elseif gameState == "gameover" then
+        drawGameOver()
     end
 end
 
@@ -185,6 +188,8 @@ function love.mousepressed(x, y, button)
             handleGameClick(x, y)
         elseif gameState == "options" then
             handleOptionsClick(x, y)
+        elseif gameState == "gameover" then
+            handleGameOverClick(x, y)
         end
     end
 end
@@ -196,6 +201,8 @@ function love.mousemoved(x, y, dx, dy)
         handleGameHover(x, y)
     elseif gameState == "options" then
         handleOptionsHover(x, y)
+    elseif gameState == "gameover" then
+        handleGameOverHover(x, y)
     end
 end
 
@@ -521,10 +528,32 @@ function getPieceColour(piece)
     return piece:match("^white") and "white" or "black"
 end
 
+function hasLegalMoves(player)
+    for i = 1, 8 do
+        for j = 1, 8 do
+            if pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) == player then
+                if #getValidMoves(i, j) > 0 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
 function switchPlayer()
     currentPlayer = currentPlayer == "white" and "black" or "white"
     turnStartTime = love.timer.getTime()
     inCheck = isKingInCheck(currentPlayer)
+
+    if not hasLegalMoves(currentPlayer) then
+        if inCheck then
+            gameOverResult = (currentPlayer == "white" and "Black" or "White") .. " wins by checkmate!"
+        else
+            gameOverResult = "Draw by stalemate!"
+        end
+        gameState = "gameover"
+    end
 end
 
 function isValidMove(i, j)
@@ -536,7 +565,7 @@ function isValidMove(i, j)
     return false
 end
 
-function getValidMoves(x, y)
+function getRawMoves(x, y)
     local piece = pieces[x][y]
     local pieceColour = getPieceColour(piece)
     local moves = {}
@@ -556,6 +585,31 @@ function getValidMoves(x, y)
     end
 
     return moves
+end
+
+function filterLegalMoves(fromX, fromY, candidates, pieceColour)
+    local legal = {}
+    for _, move in ipairs(candidates) do
+        local toX, toY = move[1], move[2]
+        local savedFrom = pieces[fromX][fromY]
+        local savedTo   = pieces[toX][toY]
+        pieces[toX][toY]     = savedFrom
+        pieces[fromX][fromY] = ""
+        local stillInCheck = isKingInCheck(pieceColour)
+        pieces[fromX][fromY] = savedFrom
+        pieces[toX][toY]     = savedTo
+        if not stillInCheck then
+            table.insert(legal, move)
+        end
+    end
+    return legal
+end
+
+function getValidMoves(x, y)
+    local piece = pieces[x][y]
+    local pieceColour = getPieceColour(piece)
+    local candidates = getRawMoves(x, y)
+    return filterLegalMoves(x, y, candidates, pieceColour)
 end
 
 function getPawnMoves(x, y, pieceColour)
@@ -784,7 +838,7 @@ function isKingInCheck(player)
     for i = 1, 8 do
         for j = 1, 8 do
             if pieces[i][j] ~= "" and getPieceColour(pieces[i][j]) ~= player then
-                local moves = getValidMoves(i, j)
+                local moves = getRawMoves(i, j)
                 for _, move in ipairs(moves) do
                     if move[1] == kingX and move[2] == kingY then
                         return true
@@ -795,4 +849,53 @@ function isKingInCheck(player)
     end
 
     return false
+end
+
+function drawGameOver()
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    love.graphics.clear(backgroundColour)
+    love.graphics.setFont(boldFont)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Game Over", 0, windowHeight / 4, windowWidth, "center")
+    love.graphics.setFont(regularFont)
+    love.graphics.printf(gameOverResult, 0, windowHeight / 2 - 20, windowWidth, "center")
+
+    local buttonWidth = 200
+    local buttonHeight = 50
+    local buttonX = (windowWidth - buttonWidth) / 2
+    local menuButtonY = windowHeight / 2 + 40
+    if hoveredButton == "menu" then
+        love.graphics.setColor(0.3, 0.7, 0.3)
+    else
+        love.graphics.setColor(0.2, 0.6, 0.2)
+    end
+    love.graphics.rectangle("fill", buttonX, menuButtonY, buttonWidth, buttonHeight)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.printf("Main Menu", buttonX, menuButtonY + 15, buttonWidth, "center")
+end
+
+function handleGameOverHover(x, y)
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    local buttonWidth = 200
+    local buttonHeight = 50
+    local buttonX = (windowWidth - buttonWidth) / 2
+    local menuButtonY = windowHeight / 2 + 40
+    if x >= buttonX and x <= buttonX + buttonWidth and y >= menuButtonY and y <= menuButtonY + buttonHeight then
+        hoveredButton = "menu"
+    else
+        hoveredButton = nil
+    end
+end
+
+function handleGameOverClick(x, y)
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    local buttonWidth = 200
+    local buttonHeight = 50
+    local buttonX = (windowWidth - buttonWidth) / 2
+    local menuButtonY = windowHeight / 2 + 40
+    if x >= buttonX and x <= buttonX + buttonWidth and y >= menuButtonY and y <= menuButtonY + buttonHeight then
+        buttonClickSound:setPitch(math.random(8, 32) / 16)
+        love.audio.play(buttonClickSound)
+        gameState = "menu"
+    end
 end

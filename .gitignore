@@ -39,3 +39,18 @@ luac.out
 *.x86_64
 *.hex
 
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VSCode
+.vscode/
+!.vscode/launch.json
+!.vscode/settings.json
+
+# Love2D build output
+*.love
+
+# Save data / logs
+*.log
