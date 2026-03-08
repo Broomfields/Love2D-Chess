@@ -1,4 +1,5 @@
 local Theme   = require("theme")
+local Audio   = require("audio")
 local Popup   = require("ui")
 local Menu    = require("screens/menu")
 local Options = require("screens/options")
@@ -8,6 +9,10 @@ local gameState = "menu"
 
 function love.load()
     Theme.load()
+    Audio.load("pieceMoved",  "assets/sounds/pieceMoved.ogg")
+    Audio.load("pieceTaken",  "assets/sounds/pieceTaken.ogg")
+    Audio.load("buttonClick", "assets/sounds/buttonClick.ogg")
+    Audio.load("inCheck",     "assets/sounds/inCheck.ogg")
     love.window.setTitle("Basic Chess Game")
     love.window.setMode(800, 800, {resizable = true, minwidth = 400, minheight = 400})
 end

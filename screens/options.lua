@@ -11,17 +11,17 @@ function Options.draw()
 
     love.graphics.clear(Theme.background)
     love.graphics.setFont(Theme.boldFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Options", 0, h / 4, w, "center")
 
     love.graphics.setFont(Theme.regularFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("To Do", 0, h / 2, w, "center")
 
     -- Return button
     love.graphics.setColor(hoveredButton == "return" and Theme.buttonGreenHov or Theme.buttonGreen)
     love.graphics.rectangle("fill", B.x, B.returnY, B.w, B.h)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Return", B.x, B.returnY + (B.h - Theme.regularFont:getHeight()) / 2, B.w, "center")
 end
 

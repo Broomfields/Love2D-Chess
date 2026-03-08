@@ -8,6 +8,35 @@ local Chess = {}
 local BOARD_MIN = 1
 local BOARD_MAX = 8
 
+Chess.BOARD_MIN = BOARD_MIN
+Chess.BOARD_MAX = BOARD_MAX
+
+Chess.PROMOTION_TARGETS = { "queen", "rook", "bishop", "knight" }
+
+function Chess.startingPosition()
+    return {
+        {"black_rook","black_knight","black_bishop","black_queen","black_king","black_bishop","black_knight","black_rook"},
+        {"black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn"},
+        {"","","","","","","",""},
+        {"","","","","","","",""},
+        {"","","","","","","",""},
+        {"","","","","","","",""},
+        {"white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn"},
+        {"white_rook","white_knight","white_bishop","white_queen","white_king","white_bishop","white_knight","white_rook"},
+    }
+end
+
+function Chess.initialCastlingRights()
+    return {
+        white = { kingSide = true, queenSide = true },
+        black = { kingSide = true, queenSide = true },
+    }
+end
+
+function Chess.applyPromotion(pieces, row, col, newPiece)
+    pieces[row][col] = newPiece
+end
+
 -- ── Shared move helpers ───────────────────────────────────────────────────────
 
 -- Add {i, j} to moves if in bounds and not occupied by a friendly piece.

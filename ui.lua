@@ -78,14 +78,14 @@ function Popup.draw()
 
     -- Title text
     love.graphics.setFont(Theme.boldFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     local titleFH = love.graphics.getFont():getHeight()
     love.graphics.printf(cfg.title, px, py + (TITLE_H - titleFH) / 2, cfg.width, "center")
 
     if cfg.type == "message" then
         -- Message text
         love.graphics.setFont(Theme.regularFont)
-        love.graphics.setColor(cfg.messageColour or {1, 1, 1})
+        love.graphics.setColor(cfg.messageColour or Theme.text)
         love.graphics.printf(cfg.message, px + PADDING, py + TITLE_H + PADDING, cfg.width - 2 * PADDING, "center")
 
         -- Buttons
@@ -101,7 +101,7 @@ function Popup.draw()
                 love.graphics.setColor(isHov and Theme.buttonGreenHov or Theme.buttonGreen)
             end
             love.graphics.rectangle("fill", bx, btnY, bw, bh, 4, 4)
-            love.graphics.setColor(1, 1, 1)
+            love.graphics.setColor(Theme.text)
             love.graphics.printf(btn.label, bx, btnY + (bh - btnFH) / 2, bw, "center")
         end
 
@@ -121,7 +121,7 @@ function Popup.draw()
                 local scale = 0.85 * isz / math.max(iw, ih)
                 local ox = (isz - iw * scale) / 2
                 local oy = (isz - ih * scale) / 2
-                love.graphics.setColor(1, 1, 1)
+                love.graphics.setColor(Theme.text)
                 love.graphics.draw(item.image, ix + ox, itemY + oy, 0, scale, scale)
             end
 

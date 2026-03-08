@@ -11,9 +11,9 @@ local Chess = require("chess")
 -- Board helpers — return a fresh pieces table each call; no _G mutation needed.
 local function emptyBoard()
     local p = {}
-    for i = 1, 8 do
+    for i = 1, Chess.BOARD_MAX do
         p[i] = {}
-        for j = 1, 8 do
+        for j = 1, Chess.BOARD_MAX do
             p[i][j] = ""
         end
     end
@@ -21,16 +21,7 @@ local function emptyBoard()
 end
 
 local function startingPosition()
-    return {
-        {"black_rook", "black_knight", "black_bishop", "black_queen", "black_king", "black_bishop", "black_knight", "black_rook"},
-        {"black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn", "black_pawn"},
-        {"", "", "", "", "", "", "", ""},
-        {"", "", "", "", "", "", "", ""},
-        {"", "", "", "", "", "", "", ""},
-        {"", "", "", "", "", "", "", ""},
-        {"white_pawn", "white_pawn", "white_pawn", "white_pawn", "white_pawn", "white_pawn", "white_pawn", "white_pawn"},
-        {"white_rook", "white_knight", "white_bishop", "white_queen", "white_king", "white_bishop", "white_knight", "white_rook"}
-    }
+    return Chess.startingPosition()
 end
 
 -- Scholar's Mate position after Qxf7#
@@ -400,10 +391,7 @@ describe("castling", function()
         return p
     end
 
-    local fullRights = {
-        white = { kingSide = true, queenSide = true },
-        black = { kingSide = true, queenSide = true },
-    }
+    local fullRights = Chess.initialCastlingRights()
 
     it("white king has a kingside castling move when conditions are met", function()
         local pieces = castlingPosition()

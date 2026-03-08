@@ -11,7 +11,7 @@ function Menu.draw()
 
     love.graphics.clear(Theme.background)
     love.graphics.setFont(Theme.boldFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Basic Chess Game", 0, h / 4, w, "center")
 
     love.graphics.setFont(Theme.regularFont)
@@ -20,19 +20,19 @@ function Menu.draw()
     -- Play Game button
     love.graphics.setColor(hoveredButton == "play" and Theme.buttonGreenHov or Theme.buttonGreen)
     love.graphics.rectangle("fill", B.x, B.playY, B.w, B.h)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Play Game", B.x, B.playY + (B.h - btnFH) / 2, B.w, "center")
 
     -- Options button
     love.graphics.setColor(hoveredButton == "options" and Theme.buttonGreenHov or Theme.buttonGreen)
     love.graphics.rectangle("fill", B.x, B.optionsY, B.w, B.h)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Options", B.x, B.optionsY + (B.h - btnFH) / 2, B.w, "center")
 
     -- Exit button
     love.graphics.setColor(hoveredButton == "exit" and Theme.buttonRedHov or Theme.buttonRed)
     love.graphics.rectangle("fill", B.x, B.exitY, B.w, B.h)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Exit", B.x, B.exitY + (B.h - btnFH) / 2, B.w, "center")
 end
 

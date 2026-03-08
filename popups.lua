@@ -22,7 +22,7 @@ function Popups.resignConfirm()
         height = 180,
         title = "Resign",
         message = "Are you sure you want to resign?",
-        messageColour = {1, 1, 1},
+        messageColour = Theme.text,
         buttons = {
             {label = "Yes, Resign", style = "danger"},
             {label = "Cancel"},

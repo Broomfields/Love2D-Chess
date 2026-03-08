@@ -7,6 +7,13 @@ local Audio  = require("audio")
 
 local Game = {}
 
+-- ── Layout constants ──────────────────────────────────────────────────────────
+local LABEL_OFFSET_X = 200   -- x-offset for right-side UI labels (latest move, turn timer)
+local BADGE_W        = 80    -- CHECK badge width
+local BADGE_H        = 28    -- CHECK badge height
+local BORDER_WIDTH   = 5     -- selection/check outline stroke width
+local CORNER_LENGTH  = 20    -- corner bracket arm length for valid-move indicators
+
 -- ── Game-state locals ─────────────────────────────────────────────────────────
 local board, pieces, pieceImages
 local selectedPiece
@@ -48,16 +55,8 @@ function Game.init(opts)
     inCheck          = false
     gameOverResult   = ""
     enPassantTarget  = nil
-    castlingRights   = {
-        white = { kingSide = true, queenSide = true },
-        black = { kingSide = true, queenSide = true },
-    }
+    castlingRights   = Chess.initialCastlingRights()
     hoveredButton    = nil
-
-    Audio.load("pieceMoved",  "assets/sounds/pieceMoved.ogg")
-    Audio.load("pieceTaken",  "assets/sounds/pieceTaken.ogg")
-    Audio.load("buttonClick", "assets/sounds/buttonClick.ogg")
-    Audio.load("inCheck",     "assets/sounds/inCheck.ogg")
 
     pieceImages = {
         white_pawn   = love.graphics.newImage("assets/images/white_pawn.png"),
@@ -74,16 +73,7 @@ function Game.init(opts)
         black_king   = love.graphics.newImage("assets/images/black_king.png"),
     }
 
-    pieces = {
-        {"black_rook","black_knight","black_bishop","black_queen","black_king","black_bishop","black_knight","black_rook"},
-        {"black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn","black_pawn"},
-        {"","","","","","","",""},
-        {"","","","","","","",""},
-        {"","","","","","","",""},
-        {"","","","","","","",""},
-        {"white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn","white_pawn"},
-        {"white_rook","white_knight","white_bishop","white_queen","white_king","white_bishop","white_knight","white_rook"},
-    }
+    pieces = Chess.startingPosition()
 end
 
 -- ── Internal helpers ──────────────────────────────────────────────────────────
@@ -135,8 +125,6 @@ local function drawCornerLines(x, y, size, width, length)
 end
 
 local function drawBoard(boardX, boardY, squareSize, boardSize)
-    local borderWidth  = 5
-    local cornerLength = 20
 
     -- Oak border
     love.graphics.setColor(Theme.border)
@@ -145,7 +133,7 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
         boardSize + 2 * Theme.borderSize, boardSize + 2 * Theme.borderSize)
 
     -- Chess notation coordinates
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.setFont(Theme.regularFont)
     for i = 1, 8 do
         local letter = string.char(96 + i):upper()
@@ -169,7 +157,7 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
                 local scale  = 0.9 * squareSize / math.max(iw, ih)
                 local offX   = (squareSize - iw * scale) / 2
                 local offY   = (squareSize - ih * scale) / 2
-                love.graphics.setColor(1, 1, 1)
+                love.graphics.setColor(Theme.text)
                 love.graphics.draw(img,
                     boardX + (j-1)*squareSize + offX,
                     boardY + (i-1)*squareSize + offY,
@@ -188,11 +176,11 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
     -- Selection outline
     if selectedX and selectedY then
         love.graphics.setColor(Theme.selectBlue)
-        love.graphics.setLineWidth(borderWidth)
+        love.graphics.setLineWidth(BORDER_WIDTH)
         love.graphics.rectangle("line",
-            boardX + (selectedY-1)*squareSize + borderWidth/2,
-            boardY + (selectedX-1)*squareSize + borderWidth/2,
-            squareSize - borderWidth, squareSize - borderWidth)
+            boardX + (selectedY-1)*squareSize + BORDER_WIDTH/2,
+            boardY + (selectedX-1)*squareSize + BORDER_WIDTH/2,
+            squareSize - BORDER_WIDTH, squareSize - BORDER_WIDTH)
     end
 
     -- Check outline on king
@@ -201,11 +189,11 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
             for j = 1, 8 do
                 if pieces[i][j] == currentPlayer .. "_king" then
                     love.graphics.setColor(Theme.checkRed)
-                    love.graphics.setLineWidth(borderWidth)
+                    love.graphics.setLineWidth(BORDER_WIDTH)
                     love.graphics.rectangle("line",
-                        boardX + (j-1)*squareSize + borderWidth/2,
-                        boardY + (i-1)*squareSize + borderWidth/2,
-                        squareSize - borderWidth, squareSize - borderWidth)
+                        boardX + (j-1)*squareSize + BORDER_WIDTH/2,
+                        boardY + (i-1)*squareSize + BORDER_WIDTH/2,
+                        squareSize - BORDER_WIDTH, squareSize - BORDER_WIDTH)
                     break
                 end
             end
@@ -226,56 +214,54 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
         else
             love.graphics.setColor(Theme.moveAmber)
         end
-        love.graphics.setLineWidth(borderWidth)
+        love.graphics.setLineWidth(BORDER_WIDTH)
         drawCornerLines(
-            boardX + (move[2]-1)*squareSize + borderWidth/2,
-            boardY + (move[1]-1)*squareSize + borderWidth/2,
-            squareSize - borderWidth, borderWidth, cornerLength)
+            boardX + (move[2]-1)*squareSize + BORDER_WIDTH/2,
+            boardY + (move[1]-1)*squareSize + BORDER_WIDTH/2,
+            squareSize - BORDER_WIDTH, BORDER_WIDTH, CORNER_LENGTH)
 
         -- Draw a purple outline on the other piece involved in a special move
         if isCastle then
-            local rookCol = move[2] > selectedY and 8 or 1
+            local rookCol = move[2] > selectedY and Chess.BOARD_MAX or Chess.BOARD_MIN
             love.graphics.setColor(Theme.castlePurple)
-            love.graphics.setLineWidth(borderWidth)
+            love.graphics.setLineWidth(BORDER_WIDTH)
             love.graphics.rectangle("line",
-                boardX + (rookCol-1)*squareSize + borderWidth/2,
-                boardY + (move[1]-1)*squareSize + borderWidth/2,
-                squareSize - borderWidth, squareSize - borderWidth)
+                boardX + (rookCol-1)*squareSize + BORDER_WIDTH/2,
+                boardY + (move[1]-1)*squareSize + BORDER_WIDTH/2,
+                squareSize - BORDER_WIDTH, squareSize - BORDER_WIDTH)
         elseif isEpCapture then
             -- Captured pawn sits on the moving pawn's row, at the destination column
             love.graphics.setColor(Theme.castlePurple)
-            love.graphics.setLineWidth(borderWidth)
+            love.graphics.setLineWidth(BORDER_WIDTH)
             love.graphics.rectangle("line",
-                boardX + (move[2]-1)*squareSize + borderWidth/2,
-                boardY + (selectedX-1)*squareSize + borderWidth/2,
-                squareSize - borderWidth, squareSize - borderWidth)
+                boardX + (move[2]-1)*squareSize + BORDER_WIDTH/2,
+                boardY + (selectedX-1)*squareSize + BORDER_WIDTH/2,
+                squareSize - BORDER_WIDTH, squareSize - BORDER_WIDTH)
         end
     end
 end
 
 local function drawUI(boardX, boardY, boardSize)
     love.graphics.setFont(Theme.regularFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
 
     -- Current player
     love.graphics.print("Current Player: ", boardX, boardY - (Theme.uiHeight + 20))
     love.graphics.print(currentPlayer,       boardX, boardY - Theme.uiHeight + 10)
 
     -- Latest move
-    love.graphics.print("Latest Move: ", boardX + 200, boardY - (Theme.uiHeight + 20))
-    love.graphics.print(latestMove,      boardX + 200, boardY - Theme.uiHeight + 10)
+    love.graphics.print("Latest Move: ", boardX + LABEL_OFFSET_X, boardY - (Theme.uiHeight + 20))
+    love.graphics.print(latestMove,      boardX + LABEL_OFFSET_X, boardY - Theme.uiHeight + 10)
 
     -- CHECK badge
     if inCheck then
-        local badgeW = 80
-        local badgeH = 28
-        local badgeX = boardX + boardSize - badgeW
+        local badgeX = boardX + boardSize - BADGE_W
         local badgeY = boardY - Theme.uiHeight - 20
         love.graphics.setColor(Theme.checkBadge)
-        love.graphics.rectangle("fill", badgeX, badgeY, badgeW, badgeH, 4, 4)
+        love.graphics.rectangle("fill", badgeX, badgeY, BADGE_W, BADGE_H, 4, 4)
         love.graphics.setFont(Theme.boldFont)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("CHECK", badgeX, badgeY + (badgeH - Theme.boldFont:getHeight()) / 2, badgeW, "center")
+        love.graphics.setColor(Theme.text)
+        love.graphics.printf("CHECK", badgeX, badgeY + (BADGE_H - Theme.boldFont:getHeight()) / 2, BADGE_W, "center")
     end
 
     -- Resign button
@@ -283,16 +269,16 @@ local function drawUI(boardX, boardY, boardSize)
     love.graphics.setColor(hoveredButton == "resign" and Theme.buttonRedHov or Theme.buttonRed)
     love.graphics.rectangle("fill", R.x, R.y, R.w, R.h)
     love.graphics.setFont(Theme.regularFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.printf("Resign", R.x, R.y + (R.h - Theme.regularFont:getHeight()) / 2, R.w, "center")
 
     -- Timers
     love.graphics.setFont(Theme.regularFont)
-    love.graphics.setColor(1, 1, 1)
+    love.graphics.setColor(Theme.text)
     love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime),
         boardX,       boardY + boardSize + Theme.borderSize / 2 + 30)
     love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime),
-        boardX + 200, boardY + boardSize + Theme.borderSize / 2 + 30)
+        boardX + LABEL_OFFSET_X, boardY + boardSize + Theme.borderSize / 2 + 30)
 end
 
 -- ── Public interface ──────────────────────────────────────────────────────────
@@ -313,7 +299,7 @@ function Game.handleHover(x, y)
 
     hoveredX = math.floor((y - L.boardY) / L.squareSize) + 1
     hoveredY = math.floor((x - L.boardX) / L.squareSize) + 1
-    if hoveredX < 1 or hoveredX > 8 or hoveredY < 1 or hoveredY > 8 then
+    if hoveredX < Chess.BOARD_MIN or hoveredX > Chess.BOARD_MAX or hoveredY < Chess.BOARD_MIN or hoveredY > Chess.BOARD_MAX then
         hoveredX, hoveredY = nil, nil
     end
 
@@ -346,7 +332,7 @@ function Game.handleClick(x, y)
     local i = math.floor((y - L.boardY) / L.squareSize) + 1
     local j = math.floor((x - L.boardX) / L.squareSize) + 1
 
-    if i >= 1 and i <= 8 and j >= 1 and j <= 8 then
+    if i >= Chess.BOARD_MIN and i <= Chess.BOARD_MAX and j >= Chess.BOARD_MIN and j <= Chess.BOARD_MAX then
         if selectedPiece then
             if isValidMove(i, j) then
                 local fromRow, fromCol = selectedX, selectedY
@@ -370,7 +356,7 @@ function Game.handleClick(x, y)
                     local cfg = Popups.pawnPromotion(currentPlayer, pieceImages)
                     cfg.onPick = function(value)
                         Audio.play("buttonClick")
-                        pieces[promRow][promCol] = value
+                        Chess.applyPromotion(pieces, promRow, promCol, value)
                         Popup.hide()
                         switchPlayer()
                     end
