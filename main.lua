@@ -31,6 +31,7 @@ function initialiseGame()
     pieceMovedSound = love.audio.newSource("assets/sounds/pieceMoved.ogg", "static")
     pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken.ogg", "static")
     buttonClickSound = love.audio.newSource("assets/sounds/buttonClick.ogg", "static")
+    inCheckSound     = love.audio.newSource("assets/sounds/inCheck.ogg", "static")
     Theme.load()
     gameStartTime = love.timer.getTime()
     turnStartTime = love.timer.getTime()
@@ -544,6 +545,11 @@ function switchPlayer()
     currentPlayer = currentPlayer == "white" and "black" or "white"
     turnStartTime = love.timer.getTime()
     inCheck = Chess.isKingInCheck(pieces, currentPlayer)
+
+    if inCheck then
+        inCheckSound:setPitch(math.random(8, 32) / 16)
+        love.audio.play(inCheckSound)
+    end
 
     if not Chess.hasLegalMoves(pieces, enPassantTarget, currentPlayer) then
         if inCheck then
