@@ -34,12 +34,12 @@ function Game.init(opts)
     onTransition = opts and opts.onTransition
 
     board = {}
-    for i = 1, 8 do
-        board[i] = {}
-        for j = 1, 8 do
-            board[i][j] = {
+    for row = 1, 8 do
+        board[row] = {}
+        for col = 1, 8 do
+            board[row][col] = {
                 piece  = nil,
-                colour = (i + j) % 2 == 0 and Theme.boardLight or Theme.boardDark
+                colour = (row + col) % 2 == 0 and Theme.boardLight or Theme.boardDark
             }
         end
     end
@@ -78,9 +78,9 @@ end
 
 -- ── Internal helpers ──────────────────────────────────────────────────────────
 
-local function isValidMove(i, j)
+local function isValidMove(row, col)
     for _, move in ipairs(validMoves) do
-        if move[1] == i and move[2] == j then return true end
+        if move[1] == row and move[2] == col then return true end
     end
     return false
 end
@@ -100,8 +100,8 @@ local function switchPlayer()
         else
             gameOverResult = "Draw by stalemate!"
         end
-        local cfg = Popups.gameOver(gameOverResult, inCheck)
-        cfg.onButton = function(label)
+        local popupConfig = Popups.gameOver(gameOverResult, inCheck)
+        popupConfig.onButton = function(label)
             Audio.play("buttonClick")
             if label == "Main Menu" then
                 Popup.hide()
@@ -109,7 +109,7 @@ local function switchPlayer()
             end
         end
         hoveredButton = nil
-        Popup.show(cfg)
+        Popup.show(popupConfig)
     end
 end
 
@@ -135,32 +135,32 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
     -- Chess notation coordinates
     love.graphics.setColor(Theme.text)
     love.graphics.setFont(Theme.regularFont)
-    for i = 1, 8 do
-        local letter = string.char(96 + i):upper()
-        local number = tostring(9 - i)
-        love.graphics.print(letter, boardX + (i-1)*squareSize + squareSize/2, boardY - Theme.borderSize/2, 0,1,1,6,6)
-        love.graphics.print(letter, boardX + (i-1)*squareSize + squareSize/2, boardY + boardSize + Theme.borderSize/2, 0,1,1,6,6)
-        love.graphics.print(number, boardX - Theme.borderSize/2, boardY + (i-1)*squareSize + squareSize/2, 0,1,1,6,6)
-        love.graphics.print(number, boardX + boardSize + Theme.borderSize/2, boardY + (i-1)*squareSize + squareSize/2, 0,1,1,6,6)
+    for fileIndex = 1, 8 do
+        local letter = string.char(96 + fileIndex):upper()
+        local number = tostring(9 - fileIndex)
+        love.graphics.print(letter, boardX + (fileIndex-1)*squareSize + squareSize/2, boardY - Theme.borderSize/2, 0,1,1,6,6)
+        love.graphics.print(letter, boardX + (fileIndex-1)*squareSize + squareSize/2, boardY + boardSize + Theme.borderSize/2, 0,1,1,6,6)
+        love.graphics.print(number, boardX - Theme.borderSize/2, boardY + (fileIndex-1)*squareSize + squareSize/2, 0,1,1,6,6)
+        love.graphics.print(number, boardX + boardSize + Theme.borderSize/2, boardY + (fileIndex-1)*squareSize + squareSize/2, 0,1,1,6,6)
     end
 
     -- Squares and pieces
-    for i = 1, 8 do
-        for j = 1, 8 do
-            love.graphics.setColor(board[i][j].colour)
+    for row = 1, 8 do
+        for col = 1, 8 do
+            love.graphics.setColor(board[row][col].colour)
             love.graphics.rectangle("fill",
-                boardX + (j-1)*squareSize, boardY + (i-1)*squareSize, squareSize, squareSize)
+                boardX + (col-1)*squareSize, boardY + (row-1)*squareSize, squareSize, squareSize)
 
-            if pieces[i][j] ~= "" then
-                local img    = pieceImages[pieces[i][j]]
-                local iw, ih = img:getWidth(), img:getHeight()
-                local scale  = 0.9 * squareSize / math.max(iw, ih)
-                local offX   = (squareSize - iw * scale) / 2
-                local offY   = (squareSize - ih * scale) / 2
+            if pieces[row][col] ~= "" then
+                local pieceImage              = pieceImages[pieces[row][col]]
+                local imageWidth, imageHeight = pieceImage:getWidth(), pieceImage:getHeight()
+                local scale   = 0.9 * squareSize / math.max(imageWidth, imageHeight)
+                local offsetX = (squareSize - imageWidth  * scale) / 2
+                local offsetY = (squareSize - imageHeight * scale) / 2
                 love.graphics.setColor(Theme.text)
-                love.graphics.draw(img,
-                    boardX + (j-1)*squareSize + offX,
-                    boardY + (i-1)*squareSize + offY,
+                love.graphics.draw(pieceImage,
+                    boardX + (col-1)*squareSize + offsetX,
+                    boardY + (row-1)*squareSize + offsetY,
                     0, scale, scale)
             end
         end
@@ -185,14 +185,14 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
 
     -- Check outline on king
     if inCheck then
-        for i = 1, 8 do
-            for j = 1, 8 do
-                if pieces[i][j] == currentPlayer .. "_king" then
+        for row = 1, 8 do
+            for col = 1, 8 do
+                if pieces[row][col] == currentPlayer .. "_king" then
                     love.graphics.setColor(Theme.checkRed)
                     love.graphics.setLineWidth(BORDER_WIDTH)
                     love.graphics.rectangle("line",
-                        boardX + (j-1)*squareSize + BORDER_WIDTH/2,
-                        boardY + (i-1)*squareSize + BORDER_WIDTH/2,
+                        boardX + (col-1)*squareSize + BORDER_WIDTH/2,
+                        boardY + (row-1)*squareSize + BORDER_WIDTH/2,
                         squareSize - BORDER_WIDTH, squareSize - BORDER_WIDTH)
                     break
                 end
@@ -265,12 +265,12 @@ local function drawUI(boardX, boardY, boardSize)
     end
 
     -- Resign button
-    local R = Layout.getResignButton(boardX, boardY, boardSize)
+    local resignButton = Layout.getResignButton(boardX, boardY, boardSize)
     love.graphics.setColor(hoveredButton == "resign" and Theme.buttonRedHov or Theme.buttonRed)
-    love.graphics.rectangle("fill", R.x, R.y, R.w, R.h)
+    love.graphics.rectangle("fill", resignButton.x, resignButton.y, resignButton.w, resignButton.h)
     love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(Theme.text)
-    love.graphics.printf("Resign", R.x, R.y + (R.h - Theme.regularFont:getHeight()) / 2, R.w, "center")
+    love.graphics.printf("Resign", resignButton.x, resignButton.y + (resignButton.h - Theme.regularFont:getHeight()) / 2, resignButton.w, "center")
 
     -- Timers
     love.graphics.setFont(Theme.regularFont)
@@ -284,39 +284,39 @@ end
 -- ── Public interface ──────────────────────────────────────────────────────────
 
 function Game.draw()
-    local w, h = love.graphics.getDimensions()
-    local L    = Layout.getBoard(w, h)
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    local boardLayout = Layout.getBoard(windowWidth, windowHeight)
 
     love.graphics.clear(Theme.background)
-    drawBoard(L.boardX, L.boardY, L.squareSize, L.boardSize)
-    drawUI(L.boardX, L.boardY, L.boardSize)
+    drawBoard(boardLayout.boardX, boardLayout.boardY, boardLayout.squareSize, boardLayout.boardSize)
+    drawUI(boardLayout.boardX, boardLayout.boardY, boardLayout.boardSize)
     Popup.draw()
 end
 
 function Game.handleHover(x, y)
-    local w, h = love.graphics.getDimensions()
-    local L    = Layout.getBoard(w, h)
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    local boardLayout = Layout.getBoard(windowWidth, windowHeight)
 
-    hoveredX = math.floor((y - L.boardY) / L.squareSize) + 1
-    hoveredY = math.floor((x - L.boardX) / L.squareSize) + 1
+    hoveredX = math.floor((y - boardLayout.boardY) / boardLayout.squareSize) + 1
+    hoveredY = math.floor((x - boardLayout.boardX) / boardLayout.squareSize) + 1
     if hoveredX < Chess.BOARD_MIN or hoveredX > Chess.BOARD_MAX or hoveredY < Chess.BOARD_MIN or hoveredY > Chess.BOARD_MAX then
         hoveredX, hoveredY = nil, nil
     end
 
-    local R = Layout.getResignButton(L.boardX, L.boardY, L.boardSize)
-    hoveredButton = Layout.hit(x, y, R.x, R.y, R.w, R.h) and "resign" or nil
+    local resignButton = Layout.getResignButton(boardLayout.boardX, boardLayout.boardY, boardLayout.boardSize)
+    hoveredButton = Layout.hit(x, y, resignButton.x, resignButton.y, resignButton.w, resignButton.h) and "resign" or nil
 end
 
 function Game.handleClick(x, y)
-    local w, h = love.graphics.getDimensions()
-    local L    = Layout.getBoard(w, h)
+    local windowWidth, windowHeight = love.graphics.getDimensions()
+    local boardLayout = Layout.getBoard(windowWidth, windowHeight)
 
     -- Resign button
-    local R = Layout.getResignButton(L.boardX, L.boardY, L.boardSize)
-    if Layout.hit(x, y, R.x, R.y, R.w, R.h) then
+    local resignButton = Layout.getResignButton(boardLayout.boardX, boardLayout.boardY, boardLayout.boardSize)
+    if Layout.hit(x, y, resignButton.x, resignButton.y, resignButton.w, resignButton.h) then
         Audio.play("buttonClick")
-        local cfg = Popups.resignConfirm()
-        cfg.onButton = function(label)
+        local popupConfig = Popups.resignConfirm()
+        popupConfig.onButton = function(label)
             Audio.play("buttonClick")
             Popup.hide()
             if label == "Yes, Resign" and onTransition then
@@ -324,23 +324,23 @@ function Game.handleClick(x, y)
             end
         end
         hoveredButton = nil
-        Popup.show(cfg)
+        Popup.show(popupConfig)
         return
     end
 
     -- Board click
-    local i = math.floor((y - L.boardY) / L.squareSize) + 1
-    local j = math.floor((x - L.boardX) / L.squareSize) + 1
+    local clickedRow = math.floor((y - boardLayout.boardY) / boardLayout.squareSize) + 1
+    local clickedCol = math.floor((x - boardLayout.boardX) / boardLayout.squareSize) + 1
 
-    if i >= Chess.BOARD_MIN and i <= Chess.BOARD_MAX and j >= Chess.BOARD_MIN and j <= Chess.BOARD_MAX then
+    if clickedRow >= Chess.BOARD_MIN and clickedRow <= Chess.BOARD_MAX and clickedCol >= Chess.BOARD_MIN and clickedCol <= Chess.BOARD_MAX then
         if selectedPiece then
-            if isValidMove(i, j) then
+            if isValidMove(clickedRow, clickedCol) then
                 local fromRow, fromCol = selectedX, selectedY
-                selectedPiece       = nil
+                selectedPiece        = nil
                 selectedX, selectedY = nil, nil
-                validMoves          = {}
+                validMoves           = {}
 
-                local result = Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, i, j, castlingRights)
+                local result = Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, clickedRow, clickedCol, castlingRights)
                 latestMove      = result.notation
                 enPassantTarget = result.newEnPassantTarget
                 castlingRights  = result.newCastlingRights or castlingRights
@@ -352,45 +352,45 @@ function Game.handleClick(x, y)
                 end
 
                 if result.isPromotion then
-                    local promRow, promCol = i, j
-                    local cfg = Popups.pawnPromotion(currentPlayer, pieceImages)
-                    cfg.onPick = function(value)
+                    local promotionRow, promotionCol = clickedRow, clickedCol
+                    local popupConfig = Popups.pawnPromotion(currentPlayer, pieceImages)
+                    popupConfig.onPick = function(value)
                         Audio.play("buttonClick")
-                        Chess.applyPromotion(pieces, promRow, promCol, value)
+                        Chess.applyPromotion(pieces, promotionRow, promotionCol, value)
                         Popup.hide()
                         switchPlayer()
                     end
                     hoveredButton = nil
-                    Popup.show(cfg)
+                    Popup.show(popupConfig)
                 else
                     switchPlayer()
                 end
 
-            elseif selectedX == i and selectedY == j then
-                selectedPiece       = nil
+            elseif selectedX == clickedRow and selectedY == clickedCol then
+                selectedPiece        = nil
                 selectedX, selectedY = nil, nil
-                validMoves          = {}
+                validMoves           = {}
 
-            elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
-                selectedPiece       = pieces[i][j]
-                selectedX, selectedY = i, j
-                validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j, castlingRights)
+            elseif pieces[clickedRow][clickedCol] ~= "" and Chess.getPieceColour(pieces[clickedRow][clickedCol]) == currentPlayer then
+                selectedPiece        = pieces[clickedRow][clickedCol]
+                selectedX, selectedY = clickedRow, clickedCol
+                validMoves           = Chess.getValidMoves(pieces, enPassantTarget, clickedRow, clickedCol, castlingRights)
 
             else
-                selectedPiece       = nil
+                selectedPiece        = nil
                 selectedX, selectedY = nil, nil
-                validMoves          = {}
+                validMoves           = {}
             end
 
-        elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
-            selectedPiece       = pieces[i][j]
-            selectedX, selectedY = i, j
-            validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j, castlingRights)
+        elseif pieces[clickedRow][clickedCol] ~= "" and Chess.getPieceColour(pieces[clickedRow][clickedCol]) == currentPlayer then
+            selectedPiece        = pieces[clickedRow][clickedCol]
+            selectedX, selectedY = clickedRow, clickedCol
+            validMoves           = Chess.getValidMoves(pieces, enPassantTarget, clickedRow, clickedCol, castlingRights)
 
         else
-            selectedPiece       = nil
+            selectedPiece        = nil
             selectedX, selectedY = nil, nil
-            validMoves          = {}
+            validMoves           = {}
         end
     end
 end

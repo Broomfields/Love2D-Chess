@@ -12,10 +12,10 @@ end
 
 -- Play a named sound with a random pitch variation.
 function Audio.play(name)
-    local s = sources[name]
-    if s then
-        s:setPitch(randomPitch())
-        love.audio.play(s)
+    local soundSource = sources[name]
+    if soundSource then
+        soundSource:setPitch(randomPitch())
+        love.audio.play(soundSource)
     end
 end
 

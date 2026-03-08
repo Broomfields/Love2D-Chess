@@ -29,13 +29,13 @@ function love.mousepressed(x, y, button)
     if Popup.isOpen() then Popup.mousepressed(x, y); return end
 
     if gameState == "menu" then
-        local ev = Menu.handleClick(x, y)
-        if ev == "play" then
-            Game.init({ onTransition = function(s) gameState = s end })
+        local menuEvent = Menu.handleClick(x, y)
+        if menuEvent == "play" then
+            Game.init({ onTransition = function(targetState) gameState = targetState end })
             gameState = "playing"
-        elseif ev == "options" then
+        elseif menuEvent == "options" then
             gameState = "options"
-        elseif ev == "exit" then
+        elseif menuEvent == "exit" then
             love.event.quit()
         end
 
