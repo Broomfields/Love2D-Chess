@@ -1,63 +1,108 @@
-# Lua Chess Game
+# Love2D Chess
 
-A simple chess game built in Lua, using the Love2D game engine. This project is a learning exercise to explore Lua programming, the LÖVE framework, game development concepts, and chess mechanics.
+A chess game built in Lua with the [LÖVE](https://love2d.org/) game engine. Originally a learning project, it has grown into a clean, structured implementation of the full chess ruleset.
 
 ![Screenshot](assets/readme/screenshot.png)
 
 ## Features
 
-- **Chessboard and Pieces**: Implements standard chess rules and movement.
-- **Basic Gameplay**: Play as white or black, with local two-player support.
-- **Learning-Focused**: Designed as a project to practice Lua programming and game development skills.
+- **Full chess rules** — all piece movement with pins respected; no illegal moves possible
+- **Check detection** — red king border and CHECK badge when in check, with an audio cue
+- **Checkmate & stalemate** — detected automatically; a popup overlays the board without leaving the game screen
+- **En passant** and **castling** (kingside and queenside), with correct rights tracking across moves
+- **Pawn promotion** — piece-picker popup; the turn switch is deferred until a piece is chosen
+- **Resign** — confirmation popup with a cancel option
+- **Draggable popups** — all popups can be repositioned by dragging the title bar
+- **Move notation** — latest move displayed above the board (e.g. `white_pawn to E4 e.p.`)
+- **Timers** — game-elapsed and per-turn timers displayed in the UI
+- **Resizable window** — board and UI scale continuously to the current window size
+- **Sound effects** — piece moved, piece taken, in-check alert, button click
+- **OpenDyslexic font** — used throughout for readability
+
+## Architecture
+
+| File | Responsibility |
+|---|---|
+| `main.lua` | LÖVE entry point; routes `draw`, mouse input, and screen transitions |
+| `chess.lua` | Pure chess logic (no LÖVE dependency); all move generation and validation |
+| `theme.lua` | Colour constants and font loading (`Theme.load()`) |
+| `layout.lua` | Board and button geometry helpers; `Layout.hit()` for point-in-rect tests |
+| `audio.lua` | Sound source registry and playback with random pitch variation |
+| `ui.lua` | Draggable popup system (`Popup.show / hide / draw / mousepressed / …`) |
+| `popups.lua` | Popup content factories (`gameOver`, `resignConfirm`, `pawnPromotion`) |
+| `screens/menu.lua` | Main menu screen |
+| `screens/game.lua` | Game screen — board rendering, input handling, game flow |
+| `screens/options.lua` | Options screen (stub — currently a placeholder) |
+| `spec/chess_spec.lua` | Unit tests, run with `busted spec/` |
 
 ## Getting Started
 
 ### Prerequisites
 
-- **Love2D**: Download and install the [Love2D game engine](https://love2d.org/).
+- **LÖVE 11+** — [love2d.org](https://love2d.org/)
+- **busted** *(optional, for tests)* — `luarocks install busted`
 
-### Installation
+### Run
 
-1. Clone or download the repository:
-   ```bash
-   git clone https://github.com/yourusername/lua-chess-game.git
-   ```
-2. Open the folder in your terminal or file explorer.
-3. Run the game with Love2D:
-   ```bash
-   love .
-   ```
+```bash
+git clone https://github.com/yourusername/love2d-chess.git
+cd love2d-chess
+love .
+```
+
+### Tests
+
+```bash
+busted spec/
+```
 
 ## Controls
 
-- **Left-click**: Select and move pieces.
-- **Right-click**: Cancel selection.
+| Action | Input |
+|---|---|
+| Select a piece | Left-click a piece belonging to the current player |
+| Move | Left-click a highlighted destination square |
+| Deselect | Left-click the selected piece again, or click elsewhere |
+| Drag a popup | Click and drag the popup title bar |
 
 ## Roadmap
 
-- [ ] Complete rendering to work for resizing, multiple screen modes, and refreshing.
-- [ ] Change from direct adding pieces to fixed positions over to using profiles so chess notation can be used to place pieces in different start places for different scenarios/modes.
-- [X] Fix piece asset rendering.
-- [X] Implement basic chess rules (complete).
-- [ ] Add check and checkmate detection.
-- [X] Highlight valid moves for selected pieces.
-- [ ] Add AI opponent (future enhancement).
-- [ ] Improve graphics and animations.
-- [ ] Save and load game state.
+### Options screen
+- [ ] Populate the Options screen with real settings controls
 
-## Technologies Used
+### Board scenarios
+- [ ] Load board positions from data files (FEN or a custom format) to configure puzzles and non-standard starting positions, rather than always beginning from the standard opening
 
-- **Lua**: Lightweight and embeddable programming language.
-- **Love2D**: Framework for 2D game development.
+### Timer formatting
+- [ ] Format the game and turn timers as `mm:ss` instead of raw decimal seconds
+
+### Move history
+- [ ] Record every move in a match as a structured list
+- [ ] Display a scrollable move-history panel alongside the board
+
+### Move navigation
+- [ ] Undo and redo moves during a game
+- [ ] Step through the full move history after the game ends (previous move / next move)
+
+### Configurable themes
+- [ ] Define colour palettes and font choices as data, loaded from files
+- [ ] Allow players to select a theme from the Options screen
+
+### Options persistence
+- [ ] Store settings (selected theme, sound volume, etc.) as data — saved to and loaded from a file between sessions
+
+## Technologies
+
+- **Lua** — lightweight scripting language
+- **LÖVE** — 2D game framework
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ## Acknowledgements
 
-- **Love2D**: For the awesome game engine.
-- **Chess Resources**: Tutorials and guides from the chess programming community.
-- **Chess Icons**: Icons created by [Cburnett](https://commons.wikimedia.org/wiki/User:Cburnett), available under the [Creative Commons Attribution-Share Alike 3.0 Unported licence (CC BY-SA 3.0)](https://creativecommons.org/licenses/by-sa/3.0/).
-- **Sound Files**: Sound effects by [Kenney](https://www.kenney.nl), available under the [Creative Commons Zero (CC0) license](http://creativecommons.org/publicdomain/zero/1.0/).
-- **OpenDyslexic Font**: Font created by [Abbie Gonzalez](https://opendyslexic.org/), available under the [Open Font License](https://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL).
+- **LÖVE** — for the game engine
+- **Chess Icons** — [Cburnett](https://commons.wikimedia.org/wiki/User:Cburnett), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/)
+- **Sound Effects** — [Kenney](https://www.kenney.nl), [CC0](http://creativecommons.org/publicdomain/zero/1.0/)
+- **OpenDyslexic Font** — [Abbie Gonzalez](https://opendyslexic.org/), [OFL](https://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL)
