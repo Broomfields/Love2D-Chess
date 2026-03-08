@@ -23,6 +23,7 @@ Theme.uiHeight       = Theme.borderSize * 2
 Theme.text           = {1, 1, 1}
 Theme.hoverOrange    = {1, 0.5, 0, 0.5}
 Theme.selectBlue     = {0, 0.75, 1}
+Theme.castlePurple   = {0.75, 0.3, 1}
 Theme.checkRed       = {1, 0, 0}
 Theme.moveAmber      = {1, 0.75, 0}
 Theme.buttonGreen    = {0.2, 0.6, 0.2}

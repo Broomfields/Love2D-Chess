@@ -16,6 +16,7 @@ local currentPlayer, validMoves
 local gameStartTime, turnStartTime
 local latestMove, inCheck, gameOverResult
 local enPassantTarget
+local castlingRights
 local hoveredButton
 local onTransition  -- callback(state) → signals main.lua of a screen change
 
@@ -47,6 +48,10 @@ function Game.init(opts)
     inCheck          = false
     gameOverResult   = ""
     enPassantTarget  = nil
+    castlingRights   = {
+        white = { kingSide = true, queenSide = true },
+        black = { kingSide = true, queenSide = true },
+    }
     hoveredButton    = nil
 
     Audio.load("pieceMoved",  "assets/sounds/pieceMoved.ogg")
@@ -99,7 +104,7 @@ local function switchPlayer()
         Audio.play("inCheck")
     end
 
-    if not Chess.hasLegalMoves(pieces, enPassantTarget, currentPlayer) then
+    if not Chess.hasLegalMoves(pieces, enPassantTarget, currentPlayer, castlingRights) then
         if inCheck then
             gameOverResult = (currentPlayer == "white" and "Black" or "White") .. " wins by checkmate!"
         else
@@ -208,11 +213,15 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
     end
 
     -- Valid move indicators
+    local isCastlingMove = selectedPiece and selectedPiece:match("king")
     for _, move in ipairs(validMoves) do
         local targetPiece = pieces[move[1]][move[2]]
         local isEpCapture = enPassantTarget and selectedPiece and selectedPiece:match("pawn") and
                             move[1] == enPassantTarget[1] and move[2] == enPassantTarget[2]
-        if (targetPiece ~= "" and Chess.getPieceColour(targetPiece) ~= currentPlayer) or isEpCapture then
+        local isCastle    = isCastlingMove and math.abs(move[2] - selectedY) == 2
+        if isCastle or isEpCapture then
+            love.graphics.setColor(Theme.castlePurple)
+        elseif targetPiece ~= "" and Chess.getPieceColour(targetPiece) ~= currentPlayer then
             love.graphics.setColor(Theme.checkRed)
         else
             love.graphics.setColor(Theme.moveAmber)
@@ -222,6 +231,25 @@ local function drawBoard(boardX, boardY, squareSize, boardSize)
             boardX + (move[2]-1)*squareSize + borderWidth/2,
             boardY + (move[1]-1)*squareSize + borderWidth/2,
             squareSize - borderWidth, borderWidth, cornerLength)
+
+        -- Draw a purple outline on the other piece involved in a special move
+        if isCastle then
+            local rookCol = move[2] > selectedY and 8 or 1
+            love.graphics.setColor(Theme.castlePurple)
+            love.graphics.setLineWidth(borderWidth)
+            love.graphics.rectangle("line",
+                boardX + (rookCol-1)*squareSize + borderWidth/2,
+                boardY + (move[1]-1)*squareSize + borderWidth/2,
+                squareSize - borderWidth, squareSize - borderWidth)
+        elseif isEpCapture then
+            -- Captured pawn sits on the moving pawn's row, at the destination column
+            love.graphics.setColor(Theme.castlePurple)
+            love.graphics.setLineWidth(borderWidth)
+            love.graphics.rectangle("line",
+                boardX + (move[2]-1)*squareSize + borderWidth/2,
+                boardY + (selectedX-1)*squareSize + borderWidth/2,
+                squareSize - borderWidth, squareSize - borderWidth)
+        end
     end
 end
 
@@ -326,9 +354,10 @@ function Game.handleClick(x, y)
                 selectedX, selectedY = nil, nil
                 validMoves          = {}
 
-                local result = Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, i, j)
+                local result = Chess.executeMove(pieces, enPassantTarget, fromRow, fromCol, i, j, castlingRights)
                 latestMove      = result.notation
                 enPassantTarget = result.newEnPassantTarget
+                castlingRights  = result.newCastlingRights or castlingRights
 
                 if result.captured ~= "" then
                     Audio.play("pieceTaken")
@@ -359,7 +388,7 @@ function Game.handleClick(x, y)
             elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
                 selectedPiece       = pieces[i][j]
                 selectedX, selectedY = i, j
-                validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j)
+                validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j, castlingRights)
 
             else
                 selectedPiece       = nil
@@ -370,7 +399,7 @@ function Game.handleClick(x, y)
         elseif pieces[i][j] ~= "" and Chess.getPieceColour(pieces[i][j]) == currentPlayer then
             selectedPiece       = pieces[i][j]
             selectedX, selectedY = i, j
-            validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j)
+            validMoves          = Chess.getValidMoves(pieces, enPassantTarget, i, j, castlingRights)
 
         else
             selectedPiece       = nil

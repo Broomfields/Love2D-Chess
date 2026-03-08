@@ -387,3 +387,99 @@ describe("discovered check", function()
         assert.is_true(Chess.isKingInCheck(pieces, "black"))
     end)
 end)
+
+-- ─────────────────────────────────────────────
+describe("castling", function()
+    -- White king E1 (8,5), white rooks A1 (8,1) and H1 (8,8), black king E8 (1,5).
+    local function castlingPosition()
+        local p = emptyBoard()
+        p[8][5] = "white_king"
+        p[8][1] = "white_rook"
+        p[8][8] = "white_rook"
+        p[1][5] = "black_king"
+        return p
+    end
+
+    local fullRights = {
+        white = { kingSide = true, queenSide = true },
+        black = { kingSide = true, queenSide = true },
+    }
+
+    it("white king has a kingside castling move when conditions are met", function()
+        local pieces = castlingPosition()
+        local moves  = Chess.getValidMoves(pieces, nil, 8, 5, fullRights)
+        local found  = false
+        for _, m in ipairs(moves) do if m[1] == 8 and m[2] == 7 then found = true end end
+        assert.is_true(found)
+    end)
+
+    it("white king has a queenside castling move when conditions are met", function()
+        local pieces = castlingPosition()
+        local moves  = Chess.getValidMoves(pieces, nil, 8, 5, fullRights)
+        local found  = false
+        for _, m in ipairs(moves) do if m[1] == 8 and m[2] == 3 then found = true end end
+        assert.is_true(found)
+    end)
+
+    it("castling moves are absent when castlingRights is nil", function()
+        local pieces = castlingPosition()
+        local moves  = Chess.getValidMoves(pieces, nil, 8, 5, nil)
+        for _, m in ipairs(moves) do
+            assert.is_false(m[2] == 7 or m[2] == 3, "should have no castling destinations")
+        end
+    end)
+
+    it("castling is not available when the king is in check", function()
+        local pieces = castlingPosition()
+        pieces[1][5] = ""           -- relocate black king off E8
+        pieces[5][5] = "black_rook" -- black rook on E-file gives check
+        pieces[1][1] = "black_king"
+        local moves = Chess.getValidMoves(pieces, nil, 8, 5, fullRights)
+        for _, m in ipairs(moves) do
+            assert.is_false(m[2] == 7 or m[2] == 3, "no castling when in check")
+        end
+    end)
+
+    it("kingside castling is blocked when the king would pass through an attacked square", function()
+        local pieces = castlingPosition()
+        pieces[1][5] = ""
+        pieces[5][6] = "black_rook" -- attacks F1 (the kingside pass-through square)
+        pieces[1][1] = "black_king"
+        local moves = Chess.getValidMoves(pieces, nil, 8, 5, fullRights)
+        local kingsideFound = false
+        for _, m in ipairs(moves) do if m[1] == 8 and m[2] == 7 then kingsideFound = true end end
+        assert.is_false(kingsideFound)
+    end)
+
+    it("executeMove places king at G1 and rook at F1 for kingside castling", function()
+        local pieces = castlingPosition()
+        Chess.executeMove(pieces, nil, 8, 5, 8, 7, fullRights)
+        assert.equal("white_king", pieces[8][7])
+        assert.equal("white_rook", pieces[8][6])
+        assert.equal("",           pieces[8][5])
+        assert.equal("",           pieces[8][8])
+    end)
+
+    it("executeMove places king at C1 and rook at D1 for queenside castling", function()
+        local pieces = castlingPosition()
+        Chess.executeMove(pieces, nil, 8, 5, 8, 3, fullRights)
+        assert.equal("white_king", pieces[8][3])
+        assert.equal("white_rook", pieces[8][4])
+        assert.equal("",           pieces[8][5])
+        assert.equal("",           pieces[8][1])
+    end)
+
+    it("executeMove revokes both castling rights when the king moves", function()
+        local pieces = castlingPosition()
+        local result = Chess.executeMove(pieces, nil, 8, 5, 8, 6, fullRights)
+        assert.is_false(result.newCastlingRights.white.kingSide)
+        assert.is_false(result.newCastlingRights.white.queenSide)
+    end)
+
+    it("executeMove revokes only the kingside right when the H1 rook moves", function()
+        local pieces = castlingPosition()
+        local result = Chess.executeMove(pieces, nil, 8, 8, 8, 7, fullRights)
+        assert.is_false(result.newCastlingRights.white.kingSide)
+        assert.is_true(result.newCastlingRights.white.queenSide)
+    end)
+end)
