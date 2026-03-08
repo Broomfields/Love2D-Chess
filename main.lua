@@ -6,6 +6,32 @@ local Popups = require("popups")
 local gameState = "menu"
 local hoveredButton = nil
 
+-- Game-state locals (assigned inside initialiseGame())
+local board, pieces, pieceImages
+local selectedPiece
+local selectedX, selectedY
+local hoveredX, hoveredY
+local currentPlayer, validMoves
+local pieceMovedSound, pieceTakenSound, buttonClickSound, inCheckSound
+local gameStartTime, turnStartTime
+local latestMove, inCheck, gameOverResult
+local enPassantTarget
+
+local function randomPitch()
+    return math.random(8, 32) / 16
+end
+
+local function isPointInRect(x, y, rx, ry, rw, rh)
+    return x >= rx and x <= rx + rw and y >= ry and y <= ry + rh
+end
+
+local function resignButtonRect(boardX, boardY, boardSize)
+    local w = 100
+    local x = boardX + boardSize - w
+    local y = boardY + boardSize + Theme.borderSize / 2 + 30
+    return x, y, w, 30
+end
+
 function love.load()
     love.window.setTitle("Basic Chess Game")
     love.window.setMode(800, 800, {resizable = true, minwidth = 400, minheight = 400})
@@ -26,8 +52,6 @@ function initialiseGame()
     currentPlayer = "white"
     validMoves = {}
 
-    borderSize = 40
-    uiHeight = borderSize * 2
     pieceMovedSound = love.audio.newSource("assets/sounds/pieceMoved.ogg", "static")
     pieceTakenSound = love.audio.newSource("assets/sounds/pieceTaken.ogg", "static")
     buttonClickSound = love.audio.newSource("assets/sounds/buttonClick.ogg", "static")
@@ -152,10 +176,10 @@ end
 
 function drawGame()
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
+    local squareSize = math.min((windowHeight - 2 * Theme.borderSize - 2 * Theme.uiHeight) / 8, (windowWidth - 2 * Theme.borderSize) / 8)
     local boardSize = squareSize * 8
     local boardX = (windowWidth - boardSize) / 2
-    local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+    local boardY = (windowHeight - boardSize) / 2 + Theme.uiHeight / 2
 
     love.graphics.clear(Theme.background)
 
@@ -204,21 +228,21 @@ function handleMenuHover(x, y)
 
     -- Play Game button
     local playButtonY = windowHeight / 2 - buttonHeight - 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= playButtonY and y <= playButtonY + buttonHeight then
+    if isPointInRect(x, y, buttonX, playButtonY, buttonWidth, buttonHeight) then
         hoveredButton = "play"
         return
     end
 
     -- Options button
     local optionsButtonY = windowHeight / 2
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= optionsButtonY and y <= optionsButtonY + buttonHeight then
+    if isPointInRect(x, y, buttonX, optionsButtonY, buttonWidth, buttonHeight) then
         hoveredButton = "options"
         return
     end
 
     -- Exit button
     local exitButtonY = windowHeight / 2 + buttonHeight + 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= exitButtonY and y <= exitButtonY + buttonHeight then
+    if isPointInRect(x, y, buttonX, exitButtonY, buttonWidth, buttonHeight) then
         hoveredButton = "exit"
         return
     end
@@ -234,7 +258,7 @@ function handleOptionsHover(x, y)
 
     -- Return button
     local returnButtonY = windowHeight / 2 + buttonHeight + 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= returnButtonY and y <= returnButtonY + buttonHeight then
+    if isPointInRect(x, y, buttonX, returnButtonY, buttonWidth, buttonHeight) then
         hoveredButton = "return"
         return
     end
@@ -244,10 +268,10 @@ end
 
 function handleGameHover(x, y)
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
+    local squareSize = math.min((windowHeight - 2 * Theme.borderSize - 2 * Theme.uiHeight) / 8, (windowWidth - 2 * Theme.borderSize) / 8)
     local boardSize = squareSize * 8
     local boardX = (windowWidth - boardSize) / 2
-    local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+    local boardY = (windowHeight - boardSize) / 2 + Theme.uiHeight / 2
 
     hoveredX = math.floor((y - boardY) / squareSize) + 1
     hoveredY = math.floor((x - boardX) / squareSize) + 1
@@ -257,10 +281,8 @@ function handleGameHover(x, y)
     end
 
     -- Check if the resign button is hovered
-    local resignButtonWidth = 100
-    local resignButtonX = boardX + boardSize - resignButtonWidth
-    local resignButtonY = boardY + boardSize + borderSize / 2 + 30
-    if x >= resignButtonX and x <= resignButtonX + resignButtonWidth and y >= resignButtonY and y <= resignButtonY + 30 then
+    local resignButtonX, resignButtonY, resignButtonWidth, resignButtonH = resignButtonRect(boardX, boardY, boardSize)
+    if isPointInRect(x, y, resignButtonX, resignButtonY, resignButtonWidth, resignButtonH) then
         hoveredButton = "resign"
     else
         hoveredButton = nil
@@ -274,32 +296,26 @@ function handleMenuClick(x, y)
     local buttonX = (windowWidth - buttonWidth) / 2
     -- Play Game button
     local playButtonY = windowHeight / 2 - buttonHeight - 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= playButtonY and y <= playButtonY + buttonHeight then
-        -- Play Button Click Sound
-        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+    if isPointInRect(x, y, buttonX, playButtonY, buttonWidth, buttonHeight) then
+        buttonClickSound:setPitch(randomPitch())
         love.audio.play(buttonClickSound)
-
         initialiseGame()
         gameState = "playing"
     end
 
     -- Options button
     local optionsButtonY = windowHeight / 2
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= optionsButtonY and y <= optionsButtonY + buttonHeight then
-        -- Play Button Click Sound
-        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+    if isPointInRect(x, y, buttonX, optionsButtonY, buttonWidth, buttonHeight) then
+        buttonClickSound:setPitch(randomPitch())
         love.audio.play(buttonClickSound)
-
         gameState = "options"
     end
 
     -- Exit button
     local exitButtonY = windowHeight / 2 + buttonHeight + 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= exitButtonY and y <= exitButtonY + buttonHeight then
-        -- Play Button Click Sound
-        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+    if isPointInRect(x, y, buttonX, exitButtonY, buttonWidth, buttonHeight) then
+        buttonClickSound:setPitch(randomPitch())
         love.audio.play(buttonClickSound)
-
         love.event.quit()
     end
 end
@@ -312,34 +328,32 @@ function handleOptionsClick(x, y)
 
     -- Return button
     local returnButtonY = windowHeight / 2 + buttonHeight + 10
-    if x >= buttonX and x <= buttonX + buttonWidth and y >= returnButtonY and y <= returnButtonY + buttonHeight then
-        -- Play Button Click Sound
-        buttonClickSound:setPitch(math.random(8, 32) / 16) -- Randomly shift pitch by an octave or two
+    if isPointInRect(x, y, buttonX, returnButtonY, buttonWidth, buttonHeight) then
+        buttonClickSound:setPitch(randomPitch())
         love.audio.play(buttonClickSound)
-
         gameState = "menu"
     end
 end
 
 function handleGameClick(x, y)
     local windowWidth, windowHeight = love.graphics.getDimensions()
-    local squareSize = math.min((windowHeight - 2 * borderSize - 2 * uiHeight) / 8, (windowWidth - 2 * borderSize) / 8)
+    local squareSize = math.min((windowHeight - 2 * Theme.borderSize - 2 * Theme.uiHeight) / 8, (windowWidth - 2 * Theme.borderSize) / 8)
     local boardSize = squareSize * 8
     local boardX = (windowWidth - boardSize) / 2
-    local boardY = (windowHeight - boardSize) / 2 + uiHeight / 2
+    local boardY = (windowHeight - boardSize) / 2 + Theme.uiHeight / 2
 
     local i = math.floor((y - boardY) / squareSize) + 1
     local j = math.floor((x - boardX) / squareSize) + 1
 
     -- Check if the resign button is clicked
-    local resignButtonWidth = 100
-    local resignButtonX = boardX + boardSize - resignButtonWidth
-    local resignButtonY = boardY + boardSize + borderSize / 2 + 30
-    if x >= resignButtonX and x <= resignButtonX + resignButtonWidth and y >= resignButtonY and y <= resignButtonY + 30 then
-        buttonClickSound:setPitch(math.random(8, 32) / 16)
+    local resignButtonX, resignButtonY, resignButtonWidth, resignButtonH = resignButtonRect(boardX, boardY, boardSize)
+    if isPointInRect(x, y, resignButtonX, resignButtonY, resignButtonWidth, resignButtonH) then
+        buttonClickSound:setPitch(randomPitch())
         love.audio.play(buttonClickSound)
         local cfg = Popups.resignConfirm()
         cfg.onButton = function(label)
+            buttonClickSound:setPitch(randomPitch())
+            love.audio.play(buttonClickSound)
             Popup.hide()
             if label == "Yes, Resign" then gameState = "menu" end
         end
@@ -361,10 +375,10 @@ function handleGameClick(x, y)
                 enPassantTarget = result.newEnPassantTarget
 
                 if result.captured ~= "" then
-                    pieceTakenSound:setPitch(math.random(8, 32) / 16)
+                    pieceTakenSound:setPitch(randomPitch())
                     love.audio.play(pieceTakenSound)
                 else
-                    pieceMovedSound:setPitch(math.random(8, 32) / 16)
+                    pieceMovedSound:setPitch(randomPitch())
                     love.audio.play(pieceMovedSound)
                 end
 
@@ -372,6 +386,8 @@ function handleGameClick(x, y)
                     local promRow, promCol = i, j
                     local cfg = Popups.pawnPromotion(currentPlayer, pieceImages)
                     cfg.onPick = function(value)
+                        buttonClickSound:setPitch(randomPitch())
+                        love.audio.play(buttonClickSound)
                         pieces[promRow][promCol] = value
                         Popup.hide()
                         switchPlayer()
@@ -412,7 +428,7 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
 
     -- Draw oak border around the board
     love.graphics.setColor(Theme.border)
-    love.graphics.rectangle("fill", boardX - borderSize, boardY - borderSize, boardSize + 2 * borderSize, boardSize + 2 * borderSize)
+    love.graphics.rectangle("fill", boardX - Theme.borderSize, boardY - Theme.borderSize, boardSize + 2 * Theme.borderSize, boardSize + 2 * Theme.borderSize)
 
     -- Draw chess notation coordinates
     love.graphics.setColor(1, 1, 1)
@@ -420,10 +436,10 @@ function drawBoard(boardX, boardY, squareSize, boardSize)
     for i = 1, 8 do
         local letter = string.char(96 + i):upper()
         local number = tostring(9 - i)
-        love.graphics.print(letter, boardX + (i - 1) * squareSize + squareSize / 2, boardY - borderSize / 2, 0, 1, 1, 6, 6)
-        love.graphics.print(letter, boardX + (i - 1) * squareSize + squareSize / 2, boardY + boardSize + borderSize / 2, 0, 1, 1, 6, 6)
-        love.graphics.print(number, boardX - borderSize / 2, boardY + (i - 1) * squareSize + squareSize / 2, 0, 1, 1, 6, 6)
-        love.graphics.print(number, boardX + boardSize + borderSize / 2, boardY + (i - 1) * squareSize + squareSize / 2, 0, 1, 1, 6, 6)
+        love.graphics.print(letter, boardX + (i - 1) * squareSize + squareSize / 2, boardY - Theme.borderSize / 2, 0, 1, 1, 6, 6)
+        love.graphics.print(letter, boardX + (i - 1) * squareSize + squareSize / 2, boardY + boardSize + Theme.borderSize / 2, 0, 1, 1, 6, 6)
+        love.graphics.print(number, boardX - Theme.borderSize / 2, boardY + (i - 1) * squareSize + squareSize / 2, 0, 1, 1, 6, 6)
+        love.graphics.print(number, boardX + boardSize + Theme.borderSize / 2, boardY + (i - 1) * squareSize + squareSize / 2, 0, 1, 1, 6, 6)
     end
 
     for i = 1, 8 do
@@ -489,19 +505,19 @@ function drawUI(boardX, boardY, boardSize)
     -- Draw current player
     love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Current Player: ", boardX, boardY - (uiHeight + 20))
-    love.graphics.print(currentPlayer, boardX, boardY - uiHeight + 10)
+    love.graphics.print("Current Player: ", boardX, boardY - (Theme.uiHeight + 20))
+    love.graphics.print(currentPlayer, boardX, boardY - Theme.uiHeight + 10)
 
     -- Draw Latest Move
     love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Latest Move: ", boardX + 200, boardY - (uiHeight + 20))
-    love.graphics.print(latestMove, boardX + 200, boardY - uiHeight + 10)
+    love.graphics.print("Latest Move: ", boardX + 200, boardY - (Theme.uiHeight + 20))
+    love.graphics.print(latestMove, boardX + 200, boardY - Theme.uiHeight + 10)
     if inCheck then
         local badgeWidth = 80
         local badgeHeight = 28
         local badgeX = boardX + boardSize - badgeWidth
-        local badgeY = boardY - uiHeight - 20
+        local badgeY = boardY - Theme.uiHeight - 20
         love.graphics.setColor(Theme.checkBadge)
         love.graphics.rectangle("fill", badgeX, badgeY, badgeWidth, badgeHeight, 4, 4)
         love.graphics.setFont(Theme.boldFont)
@@ -510,24 +526,22 @@ function drawUI(boardX, boardY, boardSize)
     end
 
     -- Draw resign button
-    local resignButtonWidth = 100
-    local resignButtonX = boardX + boardSize - resignButtonWidth
-    local resignButtonY = boardY + boardSize + borderSize / 2 + 30
+    local resignButtonX, resignButtonY, resignButtonWidth, resignButtonH = resignButtonRect(boardX, boardY, boardSize)
     if hoveredButton == "resign" then
         love.graphics.setColor(Theme.buttonRedHov)
     else
         love.graphics.setColor(Theme.buttonRed)
     end
-    love.graphics.rectangle("fill", resignButtonX, resignButtonY, resignButtonWidth, 30)
+    love.graphics.rectangle("fill", resignButtonX, resignButtonY, resignButtonWidth, resignButtonH)
     love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.printf("Resign", resignButtonX, resignButtonY + (30 - Theme.regularFont:getHeight()) / 2, resignButtonWidth, "center")
+    love.graphics.printf("Resign", resignButtonX, resignButtonY + (resignButtonH - Theme.regularFont:getHeight()) / 2, resignButtonWidth, "center")
 
     -- Draw game time and turn time
     love.graphics.setFont(Theme.regularFont)
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime), boardX, boardY + boardSize + borderSize / 2 + 30)
-    love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime), boardX + 200, boardY + boardSize + borderSize / 2 + 30)
+    love.graphics.print("Game Time: " .. string.format("%.2f", love.timer.getTime() - gameStartTime), boardX, boardY + boardSize + Theme.borderSize / 2 + 30)
+    love.graphics.print("Turn Time: " .. string.format("%.2f", love.timer.getTime() - turnStartTime), boardX + 200, boardY + boardSize + Theme.borderSize / 2 + 30)
 end
 
 function drawCornerLines(x, y, size, width, length)
@@ -547,7 +561,7 @@ function switchPlayer()
     inCheck = Chess.isKingInCheck(pieces, currentPlayer)
 
     if inCheck then
-        inCheckSound:setPitch(math.random(8, 32) / 16)
+        inCheckSound:setPitch(randomPitch())
         love.audio.play(inCheckSound)
     end
 
@@ -559,6 +573,8 @@ function switchPlayer()
         end
         local cfg = Popups.gameOver(gameOverResult, inCheck)
         cfg.onButton = function(label)
+            buttonClickSound:setPitch(randomPitch())
+            love.audio.play(buttonClickSound)
             if label == "Main Menu" then
                 Popup.hide()
                 gameState = "menu"

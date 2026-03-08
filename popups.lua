@@ -1,3 +1,4 @@
+local Theme  = require("theme")
 local Popups = {}
 
 function Popups.gameOver(resultText, isCheckmate)
@@ -7,7 +8,7 @@ function Popups.gameOver(resultText, isCheckmate)
         height = 180,
         title = isCheckmate and "Checkmate!" or "Stalemate",
         message = resultText,
-        messageColour = isCheckmate and {1, 0.25, 0.25} or {0.85, 0.85, 0.85},
+        messageColour = isCheckmate and Theme.checkmateColour or Theme.stalemateColour,
         buttons = {
             {label = "Main Menu"},
         },

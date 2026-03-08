@@ -15,6 +15,10 @@ Theme.boardDark      = hex("#7D945D")
 Theme.border         = hex("#453643")
 Theme.background     = hex("#B4C098")
 
+-- Layout
+Theme.borderSize     = 40
+Theme.uiHeight       = Theme.borderSize * 2
+
 -- General UI
 Theme.text           = {1, 1, 1}
 Theme.hoverOrange    = {1, 0.5, 0, 0.5}
@@ -33,6 +37,10 @@ Theme.popupTitle     = {0.27, 0.20, 0.26}
 Theme.popupDim       = {0, 0, 0, 0.5}
 Theme.popupItemHov   = {1, 1, 1, 0.2}
 Theme.popupItemBg    = {0.65, 0.65, 0.65}
+
+-- Popup result text colours
+Theme.checkmateColour = {1, 0.25, 0.25}
+Theme.stalemateColour = {0.85, 0.85, 0.85}
 
 -- Call once from love.load() to initialise font resources.
 function Theme.load()

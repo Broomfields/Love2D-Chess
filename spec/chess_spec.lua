@@ -42,7 +42,7 @@ end
 --   C4=white_bishop
 --   A2-D2,F2-H2=white_pawns
 --   A1=white_rook, B1=white_knight, C1=white_bishop, E1=white_king, G1=white_knight, H1=white_rook
-local function scholarsMatePosision()
+local function scholarsMatePosition()
     return {
         {"black_rook", "",            "black_bishop", "black_queen", "black_king", "black_bishop", "",             "black_rook"},
         {"black_pawn", "black_pawn",  "black_pawn",   "black_pawn",  "",           "white_queen",  "black_pawn",   "black_pawn"},
@@ -183,7 +183,7 @@ end)
 describe("Scholar's Mate", function()
     local pieces
     before_each(function()
-        pieces = scholarsMatePosision()
+        pieces = scholarsMatePosition()
     end)
 
     it("black king is in check from the white queen", function()
