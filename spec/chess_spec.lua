@@ -281,3 +281,109 @@ describe("stalemate detection", function()
         assert.is_false(Chess.hasLegalMoves(pieces, nil, "black"))
     end)
 end)
+
+-- ─────────────────────────────────────────────
+describe("back-rank checkmate", function()
+    -- Black king at H8 (row 1, col 8), trapped by own pawns at G7 and H7.
+    -- White rook on A8 delivers check along rank 8; G8 is also on the rook's file.
+    it("black king is in check", function()
+        local pieces = emptyBoard()
+        pieces[1][8] = "black_king"   -- H8
+        pieces[2][7] = "black_pawn"   -- G7 (blocks G7 escape)
+        pieces[2][8] = "black_pawn"   -- H7 (blocks H7 escape)
+        pieces[1][1] = "white_rook"   -- A8 (attacks along rank 8)
+        pieces[8][1] = "white_king"   -- A1
+        assert.is_true(Chess.isKingInCheck(pieces, "black"))
+    end)
+
+    it("black has no legal moves (checkmate)", function()
+        local pieces = emptyBoard()
+        pieces[1][8] = "black_king"
+        pieces[2][7] = "black_pawn"
+        pieces[2][8] = "black_pawn"
+        pieces[1][1] = "white_rook"
+        pieces[8][1] = "white_king"
+        assert.is_false(Chess.hasLegalMoves(pieces, nil, "black"))
+    end)
+end)
+
+-- ─────────────────────────────────────────────
+describe("smothered mate", function()
+    -- Black king at H8 (row 1, col 8), smothered by own rook at G8 and pawns at G7/H7.
+    -- White knight at F7 (row 2, col 6) delivers check — cannot be interposed or blocked.
+    it("black king is in check from the knight", function()
+        local pieces = emptyBoard()
+        pieces[1][8] = "black_king"    -- H8
+        pieces[1][7] = "black_rook"    -- G8 (smothers)
+        pieces[2][8] = "black_pawn"    -- H7 (smothers)
+        pieces[2][7] = "black_pawn"    -- G7 (smothers)
+        pieces[2][6] = "white_knight"  -- F7 (delivers check)
+        pieces[8][1] = "white_king"    -- A1
+        assert.is_true(Chess.isKingInCheck(pieces, "black"))
+    end)
+
+    it("black has no legal moves (checkmate)", function()
+        local pieces = emptyBoard()
+        pieces[1][8] = "black_king"
+        pieces[1][7] = "black_rook"
+        pieces[2][8] = "black_pawn"
+        pieces[2][7] = "black_pawn"
+        pieces[2][6] = "white_knight"
+        pieces[8][1] = "white_king"
+        assert.is_false(Chess.hasLegalMoves(pieces, nil, "black"))
+    end)
+end)
+
+-- ─────────────────────────────────────────────
+describe("pawn promotion detection", function()
+    it("flags isPromotion when white pawn reaches row 1 (rank 8)", function()
+        local pieces = emptyBoard()
+        pieces[2][4] = "white_pawn"  -- D7, one step from promotion
+        pieces[8][5] = "white_king"
+        pieces[1][5] = "black_king"
+        local result = Chess.executeMove(pieces, nil, 2, 4, 1, 4)
+        assert.is_true(result.isPromotion)
+    end)
+
+    it("flags isPromotion when black pawn reaches row 8 (rank 1)", function()
+        local pieces = emptyBoard()
+        pieces[7][4] = "black_pawn"  -- D2, one step from promotion
+        pieces[8][5] = "white_king"
+        pieces[1][5] = "black_king"
+        local result = Chess.executeMove(pieces, nil, 7, 4, 8, 4)
+        assert.is_true(result.isPromotion)
+    end)
+
+    it("does not flag isPromotion for a non-promoting pawn move", function()
+        local pieces = emptyBoard()
+        pieces[5][4] = "white_pawn"  -- D4, mid-board
+        pieces[8][5] = "white_king"
+        pieces[1][5] = "black_king"
+        local result = Chess.executeMove(pieces, nil, 5, 4, 4, 4)
+        assert.is_false(result.isPromotion)
+    end)
+end)
+
+-- ─────────────────────────────────────────────
+describe("discovered check", function()
+    -- White bishop at B2 (row 7, col 2) is aligned diagonally with black king at G7
+    -- (row 2, col 7). A white pawn at D4 (row 5, col 4) blocks the diagonal.
+    -- Moving the pawn reveals the bishop's attack.
+    it("moving a blocking piece exposes the king to check", function()
+        local pieces = emptyBoard()
+        pieces[7][2] = "white_bishop"  -- B2
+        pieces[5][4] = "white_pawn"    -- D4 (blocking the diagonal)
+        pieces[2][7] = "black_king"    -- G7
+        pieces[8][5] = "white_king"    -- E1
+
+        -- Before: bishop's diagonal is blocked by the pawn
+        assert.is_false(Chess.isKingInCheck(pieces, "black"))
+
+        -- Move pawn from D4 to D5, clearing the diagonal
+        pieces[4][4] = pieces[5][4]
+        pieces[5][4] = ""
+
+        -- After: bishop now has a clear diagonal to the black king
+        assert.is_true(Chess.isKingInCheck(pieces, "black"))
+    end)
+end)
